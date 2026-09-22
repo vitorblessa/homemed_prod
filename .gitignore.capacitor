@@ -1,0 +1,22 @@
+# =====================================
+# HomeMed Capacitor / Android build
+# =====================================
+# Native project — should not be built in CI here.
+android/app/build
+android/build
+android/.gradle
+android/local.properties
+android/**/build
+android/**/*.iml
+
+# Capacitor generated web assets
+android/app/src/main/assets/public
+
+# Signing keys — NEVER COMMIT
+*.keystore
+*.jks
+release-signing.properties
+
+# Emergent build outputs
+/build
+/out
