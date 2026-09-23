@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTheme } from 'next-themes'
+import { useAndroidBack } from '@/lib/useAndroidBack'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -377,6 +378,16 @@ function App() {
   const [aiOpen, setAiOpen] = useState(false)
   const [familyOpen, setFamilyOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+
+  // Android hardware back button: close whichever of these is open instead
+  // of letting the WebView navigate back to the login screen. Order here
+  // doesn't matter — the hook tracks whichever was opened most recently.
+  useAndroidBack(accountOpen, () => setAccountOpen(false))
+  useAndroidBack(familyOpen, () => setFamilyOpen(false))
+  useAndroidBack(aiOpen, () => setAiOpen(false))
+  useAndroidBack(!!detailMed, () => setDetailMed(null))
+  useAndroidBack(!!editMed, () => setEditMed(null))
+  useAndroidBack(addOpen, () => setAddOpen(false))
 
   const loadAll = useCallback(async () => {
     if (!user) return
@@ -1031,6 +1042,11 @@ function AddMedicineDialog({ open, onOpenChange, onSaved, editMed, onOpenExistin
   const [form, setForm] = useState(isEdit ? { ...emptyForm(''), ...editMed } : null)
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scannedCode, setScannedCode] = useState(isEdit ? (editMed.codigo_barras || '') : '')
+
+  // Registered after the dialog's own listener (page mounts this component
+  // only while `open` is true), so while the scanner is open it sits on
+  // top of the stack and the back button closes it first.
+  useAndroidBack(scannerOpen, () => setScannerOpen(false))
 
   const handleBarcode = (code) => {
     setScannerOpen(false)

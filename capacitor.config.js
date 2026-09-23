@@ -1,7 +1,7 @@
 // Capacitor config for HomeMed Android app
 // Android loads the deployed web app; native shell only provides camera/notif permissions.
 
-const SERVER_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://family-med-tracker-1.preview.emergentagent.com'
+const SERVER_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://homemed-prod-uqag.vercel.app'
 
 /** @type {import('@capacitor/cli').CapacitorConfig} */
 const config = {
