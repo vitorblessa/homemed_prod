@@ -478,7 +478,7 @@ function App() {
         try {
           const options = {
             body: `${m.nome_comercial}${m.concentracao ? ' ' + m.concentracao : ''} vence HOJE. Considere descartar.`,
-            icon: '/icon-192.svg',
+            icon: '/icon-192.png',
             tag: `expire-${m.id}`,
             data: { medicine_id: m.id, url: '/' },
           }
@@ -514,7 +514,7 @@ function App() {
         try {
           await reg.showNotification('HomeMed — Medicamento vencendo HOJE', {
             body: `${m.nome_comercial}${m.concentracao ? ' ' + m.concentracao : ''} vence hoje. Considere descartar.`,
-            icon: '/icon-192.svg',
+            icon: '/icon-192.png',
             tag: `expire-${m.id}`,
             data: { medicine_id: m.id, url: '/' },
             showTrigger: new window.TimestampTrigger(trigger),

@@ -20,8 +20,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'HomeMed'
   const options = {
     body: data.body || '',
-    icon: '/icon-192.svg',
-    badge: '/icon-192.svg',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     tag: data.tag || 'homemed',
     data: data.data || {},
     requireInteraction: false,
