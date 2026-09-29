@@ -293,8 +293,10 @@ async function handle(request, ctx) {
       const name = profile.name || email.split('@')[0];
       const picture = profile.picture || '';
 
+      let step = 'getDb';
       try {
         const db = await getDb();
+        step = 'updateOne';
         const now = new Date();
         const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         await db.collection(USERS).updateOne(
@@ -306,20 +308,25 @@ async function handle(request, ctx) {
           },
           { upsert: true }
         );
+        step = 'insertOne';
         const token = uuidv4() + '.' + uuidv4();
         await db.collection(SESSIONS).insertOne({
           token, email, name, picture, expires_at: expires, created_at: now,
         });
 
+        step = 'redirect';
         const res = NextResponse.redirect(`${origin}/?welcome=1`);
+        step = 'set-cookie';
         res.cookies.set(COOKIE_NAME, token, {
           httpOnly: true, secure: true, sameSite: 'none', path: '/', maxAge: 60 * 60 * 24 * 7,
         });
         res.cookies.set(OAUTH_STATE_COOKIE, '', { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 0 });
         return res;
       } catch (e) {
-        console.error('Google OAuth session/db step threw', e);
-        return failRedirect('Erro ao salvar sua sessão');
+        console.error(`Google OAuth session/db step threw at step=${step}`, {
+          name: e?.name, message: e?.message, stack: e?.stack, raw: String(e),
+        });
+        return failRedirect(`Erro ao salvar sua sessão (${step})`);
       }
     }
 
