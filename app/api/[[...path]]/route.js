@@ -14,7 +14,9 @@ const SESSIONS = 'sessions';
 const FAMILIES = 'families';
 const PUSH_SUBS = 'push_subscriptions';
 const COOKIE_NAME = 'homemed_session';
-const EMERGENT_AUTH_API = 'https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data';
+const OAUTH_STATE_COOKIE = 'homemed_oauth_state';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
 function json(data, status = 200, extra = {}) {
   const res = NextResponse.json(data, { status });
@@ -166,43 +168,117 @@ async function handle(request, ctx) {
       return json({ email: user.email, name: user.name, picture: user.picture || '' }, 200, { setCookie: token });
     }
 
-    if (path === '/auth/session' && method === 'POST') {
-      const body = await request.json();
-      const sessionId = body?.session_id;
-      if (!sessionId) return json({ error: 'session_id required' }, 400);
-      // Fetch profile from Emergent Auth
-      const resp = await fetch(EMERGENT_AUTH_API, {
-        headers: { 'X-Session-ID': sessionId },
-        cache: 'no-store',
-      });
-      if (!resp.ok) {
-        const t = await resp.text();
-        return json({ error: 'Emergent auth failed', detail: t }, 401);
+    if (path === '/auth/google' && method === 'GET') {
+      if (!GOOGLE_CLIENT_ID) {
+        return json({ error: 'Login com Google não configurado (defina GOOGLE_CLIENT_ID)' }, 500);
       }
-      const profile = await resp.json();
-      const email = profile.email;
-      const name = profile.name || email;
-      const picture = profile.picture || '';
-      const sessionToken = profile.session_token || sessionId;
+      const origin = new URL(request.url).origin;
+      const redirectUri = `${origin}/api/auth/google/callback`;
+      const state = uuidv4();
 
-      const db = await getDb();
-      const now = new Date();
-      const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      await db.collection(USERS).updateOne(
-        { email },
-        {
-          $set: { email, name, picture, updated_at: now },
-          $setOnInsert: { id: uuidv4(), created_at: now },
-          $unset: { deactivated: '', deactivated_at: '' },
-        },
-        { upsert: true }
-      );
-      await db.collection(SESSIONS).updateOne(
-        { token: sessionToken },
-        { $set: { token: sessionToken, email, name, picture, expires_at: expires, created_at: now } },
-        { upsert: true }
-      );
-      return json({ email, name, picture }, 200, { setCookie: sessionToken });
+      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
+      authUrl.searchParams.set('redirect_uri', redirectUri);
+      authUrl.searchParams.set('response_type', 'code');
+      authUrl.searchParams.set('scope', 'openid email profile');
+      authUrl.searchParams.set('state', state);
+      authUrl.searchParams.set('access_type', 'online');
+      authUrl.searchParams.set('prompt', 'select_account');
+
+      const res = NextResponse.redirect(authUrl.toString());
+      res.cookies.set(OAUTH_STATE_COOKIE, state, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 600, // 10 minutes is plenty to complete the Google consent screen
+      });
+      return res;
+    }
+
+    if (path === '/auth/google/callback' && method === 'GET') {
+      const url = new URL(request.url);
+      const origin = url.origin;
+      const code = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
+      const googleError = url.searchParams.get('error');
+      const expectedState = request.cookies.get(OAUTH_STATE_COOKIE)?.value;
+
+      const failRedirect = (message) => {
+        const r = NextResponse.redirect(`${origin}/?auth_error=${encodeURIComponent(message)}`);
+        r.cookies.set(OAUTH_STATE_COOKIE, '', { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 0 });
+        return r;
+      };
+
+      if (googleError) return failRedirect('Login com Google cancelado');
+      if (!code || !state || !expectedState || state !== expectedState) {
+        return failRedirect('Falha na verificação do login com Google. Tente novamente.');
+      }
+      if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+        return failRedirect('Login com Google não configurado no servidor');
+      }
+
+      try {
+        const redirectUri = `${origin}/api/auth/google/callback`;
+        const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            code,
+            client_id: GOOGLE_CLIENT_ID,
+            client_secret: GOOGLE_CLIENT_SECRET,
+            redirect_uri: redirectUri,
+            grant_type: 'authorization_code',
+          }),
+          cache: 'no-store',
+        });
+        if (!tokenResp.ok) {
+          console.error('Google token exchange failed', await tokenResp.text());
+          return failRedirect('Falha ao autenticar com o Google');
+        }
+        const tokenData = await tokenResp.json();
+
+        const userResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          cache: 'no-store',
+        });
+        if (!userResp.ok) return failRedirect('Falha ao obter perfil do Google');
+        const profile = await userResp.json();
+
+        if (!profile.email) return failRedirect('Sua conta Google não retornou um email');
+        if (profile.email_verified === false) return failRedirect('Email do Google não verificado');
+
+        const email = profile.email.toLowerCase();
+        const name = profile.name || email.split('@')[0];
+        const picture = profile.picture || '';
+
+        const db = await getDb();
+        const now = new Date();
+        const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await db.collection(USERS).updateOne(
+          { email },
+          {
+            $set: { email, name, picture, updated_at: now },
+            $setOnInsert: { id: uuidv4(), created_at: now },
+            $unset: { deactivated: '', deactivated_at: '' },
+          },
+          { upsert: true }
+        );
+        const token = uuidv4() + '.' + uuidv4();
+        await db.collection(SESSIONS).insertOne({
+          token, email, name, picture, expires_at: expires, created_at: now,
+        });
+
+        const res = NextResponse.redirect(`${origin}/?welcome=1`);
+        res.cookies.set(COOKIE_NAME, token, {
+          httpOnly: true, secure: true, sameSite: 'none', path: '/', maxAge: 60 * 60 * 24 * 7,
+        });
+        res.cookies.set(OAUTH_STATE_COOKIE, '', { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 0 });
+        return res;
+      } catch (e) {
+        console.error('Google OAuth callback error', e);
+        return failRedirect('Erro ao autenticar com o Google');
+      }
     }
 
     if (path === '/auth/me' && method === 'GET') {

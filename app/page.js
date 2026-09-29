@@ -501,28 +501,21 @@ function App() {
   useEffect(() => {
     async function bootstrap() {
       try {
-        // 1. Check if we have session_id in URL fragment (from Emergent redirect)
-        if (typeof window !== 'undefined' && window.location.hash.startsWith('#session_id=')) {
-          const sessionId = window.location.hash.replace('#session_id=', '')
+        const params = new URLSearchParams(window.location.search)
+        const authError = params.get('auth_error')
+        const welcome = params.get('welcome')
+        if (authError || welcome) {
           window.history.replaceState({}, document.title, window.location.pathname)
-          const res = await fetch('/api/auth/session', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_id: sessionId }),
-          })
-          if (res.ok) {
-            const data = await res.json()
-            setUser(data)
-            toast.success(`Bem-vindo, ${data.name || data.email}!`)
-          } else {
-            toast.error('Falha ao autenticar')
-          }
-        } else {
-          // 2. Check cookie session
-          const res = await fetch('/api/auth/me', { credentials: 'include' })
-          const data = await res.json()
-          setUser(data.user)
+        }
+
+        const res = await fetch('/api/auth/me', { credentials: 'include' })
+        const data = await res.json()
+        setUser(data.user)
+
+        if (data.user && welcome) {
+          toast.success(`Bem-vindo, ${data.user.name || data.user.email}!`)
+        } else if (authError) {
+          toast.error(authError)
         }
       } catch {
         setUser(null)
@@ -617,8 +610,10 @@ function App() {
   }, [user, medicines])
 
   const doLogin = () => {
-    const cb = encodeURIComponent(window.location.origin + window.location.pathname)
-    window.location.href = `https://auth.emergentagent.com/?redirect=${cb}`
+    // First-party OAuth flow (see app/api/[[...path]]/route.js: /auth/google
+    // and /auth/google/callback). Relative URL, so it works on whatever
+    // domain the app is running on — no hardcoded host needed.
+    window.location.href = '/api/auth/google'
   }
 
   const doLogout = async () => {
