@@ -21,6 +21,9 @@ export const metadata = {
     statusBarStyle: 'default',
     title: 'HomeMed',
   },
+  verification: {
+    google: 'HuXFW_UXbVh7ouqJhxMddLqIXHtwmFdVVUWCVojseb8',
+  },
 }
 
 export const viewport = {
