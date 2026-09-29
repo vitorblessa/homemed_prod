@@ -168,6 +168,25 @@ async function handle(request, ctx) {
       return json({ email: user.email, name: user.name, picture: user.picture || '' }, 200, { setCookie: token });
     }
 
+    if (path === '/debug/env' && method === 'GET') {
+      // Temporary, safe diagnostic route: only booleans/non-secret metadata,
+      // never the actual values. Helps confirm which env vars this specific
+      // running deployment actually sees, and which Vercel deployment/domain
+      // is serving the request. Remove once the Google login issue is fixed.
+      return json({
+        hasMongoUrl: !!process.env.MONGO_URL,
+        hasDbName: !!process.env.DB_NAME,
+        dbName: process.env.DB_NAME || null,
+        hasGeminiKey: !!process.env.GEMINI_API_KEY,
+        hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
+        hasGoogleClientSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+        vercelEnv: process.env.VERCEL_ENV || null,
+        vercelUrl: process.env.VERCEL_URL || null,
+        requestOrigin: new URL(request.url).origin,
+        nodeVersion: process.version,
+      });
+    }
+
     if (path === '/auth/google' && method === 'GET') {
       if (!GOOGLE_CLIENT_ID) {
         return json({ error: 'Login com Google não configurado (defina GOOGLE_CLIENT_ID)' }, 500);
