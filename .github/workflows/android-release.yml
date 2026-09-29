@@ -32,11 +32,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install required Android SDK platform/build-tools
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Accept Android SDK licenses and install platform/build-tools
+        # ubuntu-latest runners already ship an Android SDK; we just need to
+        # accept its licenses (non-interactively, hence "yes |") and install
+        # the specific platform/build-tools this project targets.
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          SDKMANAGER=$(find "$ANDROID_SDK_ROOT/cmdline-tools" -name sdkmanager -type f | sort -V | tail -n1)
+          yes | "$SDKMANAGER" --licenses --sdk_root="$ANDROID_SDK_ROOT" > /dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Install JS dependencies
         run: yarn install
