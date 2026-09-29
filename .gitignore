@@ -102,6 +102,7 @@ android/app/src/main/assets/public
 *.keystore
 *.jks
 release-signing.properties
+android/keystore.properties
 
 # Capacitor generated
 capacitor.config.local.json
