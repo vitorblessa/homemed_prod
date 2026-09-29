@@ -218,6 +218,7 @@ async function handle(request, ctx) {
         return failRedirect('Login com Google não configurado no servidor');
       }
 
+      let tokenData;
       try {
         const redirectUri = `${origin}/api/auth/google/callback`;
         const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
@@ -233,25 +234,47 @@ async function handle(request, ctx) {
           cache: 'no-store',
         });
         if (!tokenResp.ok) {
-          console.error('Google token exchange failed', await tokenResp.text());
-          return failRedirect('Falha ao autenticar com o Google');
+          console.error('Google token exchange failed', tokenResp.status, await tokenResp.text());
+          return failRedirect('Falha ao autenticar com o Google (token)');
         }
-        const tokenData = await tokenResp.json();
+        tokenData = await tokenResp.json();
+      } catch (e) {
+        console.error('Google token exchange threw', e);
+        return failRedirect('Erro ao trocar o código com o Google');
+      }
 
+      if (!tokenData?.access_token) {
+        console.error('Google token response missing access_token', tokenData);
+        return failRedirect('Google não retornou um token de acesso válido');
+      }
+
+      let profile;
+      try {
         const userResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${tokenData.access_token}` },
           cache: 'no-store',
         });
-        if (!userResp.ok) return failRedirect('Falha ao obter perfil do Google');
-        const profile = await userResp.json();
+        if (!userResp.ok) {
+          console.error('Google userinfo fetch failed', userResp.status, await userResp.text());
+          return failRedirect('Falha ao obter perfil do Google');
+        }
+        profile = await userResp.json();
+      } catch (e) {
+        console.error('Google userinfo fetch threw', e);
+        return failRedirect('Erro ao buscar seu perfil do Google');
+      }
 
-        if (!profile.email) return failRedirect('Sua conta Google não retornou um email');
-        if (profile.email_verified === false) return failRedirect('Email do Google não verificado');
+      if (!profile?.email || typeof profile.email !== 'string') {
+        console.error('Google profile missing email', profile);
+        return failRedirect('Sua conta Google não retornou um email');
+      }
+      if (profile.email_verified === false) return failRedirect('Email do Google não verificado');
 
-        const email = profile.email.toLowerCase();
-        const name = profile.name || email.split('@')[0];
-        const picture = profile.picture || '';
+      const email = profile.email.toLowerCase();
+      const name = profile.name || email.split('@')[0];
+      const picture = profile.picture || '';
 
+      try {
         const db = await getDb();
         const now = new Date();
         const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -276,8 +299,8 @@ async function handle(request, ctx) {
         res.cookies.set(OAUTH_STATE_COOKIE, '', { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 0 });
         return res;
       } catch (e) {
-        console.error('Google OAuth callback error', e);
-        return failRedirect('Erro ao autenticar com o Google');
+        console.error('Google OAuth session/db step threw', e);
+        return failRedirect('Erro ao salvar sua sessão');
       }
     }
 
