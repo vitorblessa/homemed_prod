@@ -311,6 +311,85 @@ async function handle(request, ctx) {
       }
     }
 
+    // Native Google Sign-In (Android app). The web redirect flow above
+    // (/auth/google + /auth/google/callback) doesn't work inside the app's
+    // embedded WebView — Google blocks OAuth there and forces an external
+    // browser, whose session cookie never reaches the app. So the Android
+    // app uses the native Google Sign-In SDK instead (via the
+    // @codetrix-studio/capacitor-google-auth plugin) and sends the resulting
+    // ID token here. The plugin is configured with serverClientId =
+    // GOOGLE_CLIENT_ID (the same Web OAuth client used by the browser flow),
+    // so the token's audience matches what we already verify against below —
+    // this route doesn't need a separate client ID or any new env var.
+    if (path === '/auth/google/token' && method === 'POST') {
+      if (!GOOGLE_CLIENT_ID) {
+        return json({ error: 'Login com Google não configurado (defina GOOGLE_CLIENT_ID)' }, 500);
+      }
+      const body = await request.json();
+      const idToken = body?.id_token;
+      if (!idToken || typeof idToken !== 'string') {
+        return json({ error: 'id_token obrigatório' }, 400);
+      }
+
+      let payload;
+      try {
+        const resp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`, {
+          cache: 'no-store',
+        });
+        if (!resp.ok) {
+          console.error('Google tokeninfo rejected token', resp.status, await resp.text());
+          return json({ error: 'Token do Google inválido' }, 401);
+        }
+        payload = await resp.json();
+      } catch (e) {
+        console.error('Google tokeninfo fetch threw', e);
+        return json({ error: 'Erro ao validar token do Google' }, 502);
+      }
+
+      if (payload.aud !== GOOGLE_CLIENT_ID) {
+        console.error('Google id_token audience mismatch', { aud: payload.aud });
+        return json({ error: 'Token não pertence a este app' }, 401);
+      }
+      if (payload.email_verified === 'false' || payload.email_verified === false) {
+        return json({ error: 'Email do Google não verificado' }, 401);
+      }
+      if (!payload.email || typeof payload.email !== 'string') {
+        return json({ error: 'Google não retornou um email' }, 401);
+      }
+
+      const email = payload.email.toLowerCase();
+      const name = payload.name || email.split('@')[0];
+      const picture = payload.picture || '';
+
+      let step = 'getDb';
+      try {
+        const db = await getDb();
+        step = 'updateOne';
+        const now = new Date();
+        const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        await db.collection(USERS).updateOne(
+          { email },
+          {
+            $set: { email, name, picture, updated_at: now },
+            $setOnInsert: { id: uuidv4(), created_at: now },
+            $unset: { deactivated: '', deactivated_at: '' },
+          },
+          { upsert: true }
+        );
+        step = 'insertOne';
+        const token = uuidv4() + '.' + uuidv4();
+        await db.collection(SESSIONS).insertOne({
+          token, email, name, picture, expires_at: expires, created_at: now,
+        });
+        return json({ email, name, picture }, 200, { setCookie: token });
+      } catch (e) {
+        console.error(`Google native login session/db step threw at step=${step}`, {
+          name: e?.name, message: e?.message, stack: e?.stack, raw: String(e),
+        });
+        return json({ error: `Erro ao salvar sua sessão (${step})` }, 500);
+      }
+    }
+
     if (path === '/auth/me' && method === 'GET') {
       const user = await currentUser(request);
       if (!user) return json({ user: null }, 200);

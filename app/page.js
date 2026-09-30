@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTheme } from 'next-themes'
+import { Capacitor } from '@capacitor/core'
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth'
 import { useAndroidBack } from '@/lib/useAndroidBack'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -499,6 +501,14 @@ function App() {
 
   // ============ AUTH ============
   useEffect(() => {
+    // Native Google Sign-In only makes sense inside the Android app; the
+    // config (serverClientId etc.) comes from capacitor.config.js.
+    if (Capacitor.isNativePlatform()) {
+      GoogleAuth.initialize()
+    }
+  }, [])
+
+  useEffect(() => {
     async function bootstrap() {
       try {
         const params = new URLSearchParams(window.location.search)
@@ -609,10 +619,38 @@ function App() {
     scheduleAll()
   }, [user, medicines])
 
-  const doLogin = () => {
-    // First-party OAuth flow (see app/api/[[...path]]/route.js: /auth/google
-    // and /auth/google/callback). Relative URL, so it works on whatever
-    // domain the app is running on — no hardcoded host needed.
+  const doLogin = async () => {
+    // Inside the Android app, Google blocks OAuth in embedded WebViews and
+    // kicks the flow out to an external browser, whose session cookie never
+    // makes it back into the app. So the native app signs in with the
+    // device's Google Sign-In SDK instead and sends the ID token to our own
+    // backend (/auth/google/token), which verifies it the same way as the
+    // web flow below.
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const googleUser = await GoogleAuth.signIn()
+        const idToken = googleUser?.authentication?.idToken
+        if (!idToken) throw new Error('Google não retornou um token de login')
+        const res = await fetch('/api/auth/google/token', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_token: idToken }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.error || 'Falha no login com Google')
+        setUser(data)
+        toast.success(`Bem-vindo, ${data.name || data.email}!`)
+      } catch (e) {
+        if (e?.message && !/cancel/i.test(e.message)) {
+          toast.error(e.message || 'Login com Google falhou')
+        }
+      }
+      return
+    }
+    // Web: first-party OAuth redirect flow (see app/api/[[...path]]/route.js:
+    // /auth/google and /auth/google/callback). Relative URL, so it works on
+    // whatever domain the app is running on — no hardcoded host needed.
     window.location.href = '/api/auth/google'
   }
 

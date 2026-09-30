@@ -15,6 +15,7 @@
         "@capacitor/browser": "6",
         "@capacitor/core": "6",
         "@capacitor/preferences": "6",
+        "@codetrix-studio/capacitor-google-auth": "3.4.0-rc.4",
         "@hookform/resolvers": "5.1.1",
         "@radix-ui/react-accordion": "1.2.11",
         "@radix-ui/react-alert-dialog": "1.1.14",
