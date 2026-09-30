@@ -113,7 +113,7 @@ export default function DeleteAccountPage() {
               </div>
 
               <div className="text-center text-xs text-muted-foreground pt-3 border-t">
-                <p>Precisa de ajuda? <a href="mailto:suporte@homemed.app" className="text-blue-600 underline">suporte@homemed.app</a></p>
+                <p>Precisa de ajuda? <a href="mailto:suporte@homemed.tech" className="text-blue-600 underline">suporte@homemed.tech</a></p>
                 <div className="mt-2 flex justify-center gap-3">
                   <a href="/" className="text-blue-600 underline flex items-center gap-1"><Pill className="h-3 w-3" /> Voltar</a>
                   <a href="/privacy" className="text-blue-600 underline">Privacidade</a>

@@ -74,7 +74,7 @@ export default function TermsPage() {
 
         <section>
           <h2 className="font-semibold text-xl">12. Contato / Lei aplicável</h2>
-          <p className="text-sm">Estes Termos são regidos pelas leis do Brasil. Dúvidas: <a href="mailto:suporte@homemed.app" className="text-blue-600 underline">suporte@homemed.app</a> (placeholder — substituir pelo canal oficial ao publicar).</p>
+          <p className="text-sm">Estes Termos são regidos pelas leis do Brasil. Dúvidas: <a href="mailto:suporte@homemed.tech" className="text-blue-600 underline">suporte@homemed.tech</a>.</p>
           <p className="text-xs text-muted-foreground mt-3">Titular / Empresa responsável: <i>[a preencher antes da publicação na Play Store]</i></p>
         </section>
 

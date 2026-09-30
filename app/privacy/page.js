@@ -75,7 +75,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="font-semibold text-xl mt-4">8. Contato</h2>
-          <p className="text-sm">Em caso de dúvidas sobre esta política: <a href="mailto:privacidade@homemed.app" className="text-blue-600 underline">privacidade@homemed.app</a> (placeholder — substituir pelo canal oficial ao publicar).</p>
+          <p className="text-sm">Em caso de dúvidas sobre esta política: <a href="mailto:privacidade@homemed.tech" className="text-blue-600 underline">privacidade@homemed.tech</a>.</p>
         </section>
 
         <footer className="pt-4 border-t text-xs text-muted-foreground">
