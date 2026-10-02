@@ -45,10 +45,10 @@ const config = {
     SafeArea: {
       enabled: true,
       customColorsForSystemBars: true,
-      statusBarColor: '#FFFFFFFF',
-      statusBarContent: 'dark',
-      navigationBarColor: '#FFFFFFFF',
-      navigationBarContent: 'dark',
+      statusBarColor: '#2563EBFF',
+      statusBarContent: 'light',
+      navigationBarColor: '#000000FF',
+      navigationBarContent: 'light',
     },
   },
 }

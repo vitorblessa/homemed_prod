@@ -4,9 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import { Capacitor } from '@capacitor/core'
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth'
-// Side-effect import required by @capacitor-community/safe-area when it's
-// enabled purely via capacitor.config.js (see SafeArea plugin config there).
-import '@capacitor-community/safe-area'
+import { SafeArea } from '@capacitor-community/safe-area'
 import { useAndroidBack } from '@/lib/useAndroidBack'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -508,6 +506,22 @@ function App() {
     // config (serverClientId etc.) comes from capacitor.config.js.
     if (Capacitor.isNativePlatform()) {
       GoogleAuth.initialize()
+
+      // Paint the status bar to match the app's blue header, and the
+      // navigation bar black so the system back/home/recents icons (which
+      // are light-colored) stay visible instead of disappearing against a
+      // white background. Called here (not just left to capacitor.config.js)
+      // so it takes effect immediately on the live site, without needing a
+      // new native build.
+      SafeArea.enable({
+        config: {
+          customColorsForSystemBars: true,
+          statusBarColor: '#2563EBFF',
+          statusBarContent: 'light',
+          navigationBarColor: '#000000FF',
+          navigationBarContent: 'light',
+        },
+      })
     }
   }, [])
 
