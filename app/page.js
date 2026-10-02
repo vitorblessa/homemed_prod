@@ -1126,7 +1126,7 @@ function App() {
       {/* Floating AI assistant button */}
       <button
         onClick={() => setAiOpen(true)}
-        className="fixed bottom-24 right-4 sm:bottom-6 sm:right-6 h-14 w-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all z-30 flex items-center justify-center"
+        className="fixed bottom-[calc(6rem+var(--safe-area-inset-bottom,0px))] right-4 sm:bottom-6 sm:right-6 h-14 w-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all z-30 flex items-center justify-center"
         aria-label="Assistente IA"
       >
         <MessageCircle className="h-6 w-6" />
@@ -1135,7 +1135,7 @@ function App() {
       {/* Floating Add button (mobile) */}
       <button
         onClick={() => setAddOpen(true)}
-        className="fixed bottom-6 right-4 sm:hidden h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl transition-all z-30 flex items-center justify-center"
+        className="fixed bottom-[calc(1.5rem+var(--safe-area-inset-bottom,0px))] right-4 sm:hidden h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg hover:shadow-xl transition-all z-30 flex items-center justify-center"
         aria-label="Adicionar"
       >
         <Plus className="h-6 w-6" />
