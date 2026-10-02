@@ -23,6 +23,30 @@ body {
   padding-right: var(--safe-area-inset-right, 0px);
 }
 
+/*
+ * Fills the strips the padding above reserves, since Android 15+ won't let
+ * us color the real system bars (see the comment in app/layout.js). Fixed
+ * so they stay put behind the status/navigation bar while the page scrolls;
+ * 0-height (and invisible) on web/iOS where the inset variables are unset.
+ */
+.safe-area-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+.safe-area-bar-top {
+  top: 0;
+  height: var(--safe-area-inset-top, 0px);
+  background: #2563eb;
+}
+.safe-area-bar-bottom {
+  bottom: 0;
+  height: var(--safe-area-inset-bottom, 0px);
+  background: #000000;
+}
+
 @layer utilities {
   .line-clamp-2 {
     display: -webkit-box;

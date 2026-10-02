@@ -44,6 +44,18 @@ export default function RootLayout({ children }) {
         <script dangerouslySetInnerHTML={{__html:'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);'}} />
       </head>
       <body className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        {/*
+          Android 15+ (targetSdkVersion 36) no longer lets apps tint the
+          actual status/navigation bar background (window.statusBarColor is
+          ignored on SDK 35+) — only the icon color (light/dark) still works.
+          So instead of relying on that native API, we paint the reserved
+          safe-area strips ourselves: blue on top (matches the header),
+          black on the bottom (so the light system icons stay visible
+          against it instead of disappearing on a white page). Harmless
+          on web/iOS, where the --safe-area-inset-* variables are 0.
+        */}
+        <div aria-hidden className="safe-area-bar safe-area-bar-top" />
+        <div aria-hidden className="safe-area-bar safe-area-bar-bottom" />
         <Providers>{children}</Providers>
       </body>
     </html>
