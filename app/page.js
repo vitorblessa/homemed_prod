@@ -516,9 +516,12 @@ function App() {
       SafeArea.enable({
         config: {
           customColorsForSystemBars: true,
-          statusBarColor: '#2563EBFF',
+          // Android's Color.parseColor expects alpha FIRST (#AARRGGBB), not
+          // last — #2563EBFF was being read as ~14% opacity, so it looked
+          // like nothing happened. FF prefix = fully opaque.
+          statusBarColor: '#FF2563EB',
           statusBarContent: 'light',
-          navigationBarColor: '#000000FF',
+          navigationBarColor: '#FF000000',
           navigationBarContent: 'light',
         },
       })
