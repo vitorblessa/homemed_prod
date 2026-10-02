@@ -31,6 +31,10 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: '#2563EB',
+  // Lets the app draw under the status/navigation bars (edge-to-edge) so
+  // @capacitor-community/safe-area's inset variables have real values to
+  // report inside the Android app; no effect on the regular website.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }) {

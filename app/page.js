@@ -4,6 +4,9 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import { Capacitor } from '@capacitor/core'
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth'
+// Side-effect import required by @capacitor-community/safe-area when it's
+// enabled purely via capacitor.config.js (see SafeArea plugin config there).
+import '@capacitor-community/safe-area'
 import { useAndroidBack } from '@/lib/useAndroidBack'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

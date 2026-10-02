@@ -37,6 +37,19 @@ const config = {
       serverClientId: GOOGLE_WEB_CLIENT_ID,
       forceCodeForRefreshToken: false,
     },
+    // Android 15+ (targetSdkVersion 36) draws the app edge-to-edge by
+    // default, so without this the content renders behind the status bar
+    // and the navigation bar. This plugin reports the real inset sizes as
+    // CSS variables (see app/globals.css), which we also use to paint the
+    // system bars white/dark-content to match the app's light theme.
+    SafeArea: {
+      enabled: true,
+      customColorsForSystemBars: true,
+      statusBarColor: '#FFFFFFFF',
+      statusBarContent: 'dark',
+      navigationBarColor: '#FFFFFFFF',
+      navigationBarContent: 'dark',
+    },
   },
 }
 

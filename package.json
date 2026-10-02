@@ -10,6 +10,7 @@
         "start": "next start"
     },
     "dependencies": {
+        "@capacitor-community/safe-area": "6.0.0-alpha.8",
         "@capacitor/android": "6",
         "@capacitor/app": "6",
         "@capacitor/browser": "6",
