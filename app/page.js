@@ -682,11 +682,7 @@ function App() {
         toast.success(`Bem-vindo, ${data.name || data.email}!`)
       } catch (e) {
         if (e?.message && !/cancel/i.test(e.message)) {
-          // TEMP: surface the native error code (e.g. Google SDK status code)
-          // alongside the message to diagnose a native-only Google Sign-In
-          // failure. Remove once diagnosed.
-          const code = e?.code ? ` [${e.code}]` : ''
-          toast.error((e.message || 'Login com Google falhou') + code)
+          toast.error(e.message || 'Login com Google falhou')
           console.error('Google native sign-in error', e)
         }
       }
