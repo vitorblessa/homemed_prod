@@ -3,7 +3,19 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import { Capacitor } from '@capacitor/core'
-import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth'
+import { SocialLogin } from '@capgo/capacitor-social-login'
+
+// Web OAuth Client ID (not a secret — it's a public identifier). Same
+// GOOGLE_CLIENT_ID our backend already verifies ID tokens against (see
+// app/api/[[...path]]/route.js, /auth/google/token). Used as the plugin's
+// webClientId: on Android, Credential Manager/Google Play Services issues
+// an ID token for THIS client even though sign-in itself is gated by a
+// separate "Android" OAuth client (package name + signing-cert SHA-1)
+// registered in Google Cloud Console, which has to match whichever
+// certificate actually signed the running build (the Play App Signing
+// cert for anything installed from the Play Store/testing tracks, not the
+// local upload-key cert).
+const GOOGLE_WEB_CLIENT_ID = '225884335654-q7j0bih6j8sa02bnm4jdmi3cdid4qo91.apps.googleusercontent.com'
 import { SafeArea } from '@capacitor-community/safe-area'
 import { useAndroidBack } from '@/lib/useAndroidBack'
 import { Button } from '@/components/ui/button'
@@ -505,7 +517,7 @@ function App() {
     // Native Google Sign-In only makes sense inside the Android app; the
     // config (serverClientId etc.) comes from capacitor.config.js.
     if (Capacitor.isNativePlatform()) {
-      GoogleAuth.initialize()
+      SocialLogin.initialize({ google: { webClientId: GOOGLE_WEB_CLIENT_ID } })
 
       // Paint the status bar to match the app's blue header, and the
       // navigation bar black so the system back/home/recents icons (which
@@ -642,14 +654,17 @@ function App() {
   const doLogin = async () => {
     // Inside the Android app, Google blocks OAuth in embedded WebViews and
     // kicks the flow out to an external browser, whose session cookie never
-    // makes it back into the app. So the native app signs in with the
-    // device's Google Sign-In SDK instead and sends the ID token to our own
-    // backend (/auth/google/token), which verifies it the same way as the
-    // web flow below.
+    // makes it back into the app. So the native app signs in with Android's
+    // Credential Manager (via @capgo/capacitor-social-login) instead and
+    // sends the ID token to our own backend (/auth/google/token), which
+    // verifies it the same way as the web flow below.
     if (Capacitor.isNativePlatform()) {
       try {
-        const googleUser = await GoogleAuth.signIn()
-        const idToken = googleUser?.authentication?.idToken
+        const { result } = await SocialLogin.login({
+          provider: 'google',
+          options: { scopes: ['email', 'profile'] },
+        })
+        const idToken = result?.idToken
         if (!idToken) throw new Error('Google não retornou um token de login')
         const res = await fetch('/api/auth/google/token', {
           method: 'POST',

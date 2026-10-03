@@ -315,9 +315,9 @@ async function handle(request, ctx) {
     // (/auth/google + /auth/google/callback) doesn't work inside the app's
     // embedded WebView — Google blocks OAuth there and forces an external
     // browser, whose session cookie never reaches the app. So the Android
-    // app uses the native Google Sign-In SDK instead (via the
-    // @codetrix-studio/capacitor-google-auth plugin) and sends the resulting
-    // ID token here. The plugin is configured with serverClientId =
+    // app uses Android's Credential Manager instead (via the
+    // @capgo/capacitor-social-login plugin) and sends the resulting ID
+    // token here. The plugin is initialized with webClientId =
     // GOOGLE_CLIENT_ID (the same Web OAuth client used by the browser flow),
     // so the token's audience matches what we already verify against below —
     // this route doesn't need a separate client ID or any new env var.
