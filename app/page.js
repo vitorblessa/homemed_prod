@@ -660,9 +660,13 @@ function App() {
     // verifies it the same way as the web flow below.
     if (Capacitor.isNativePlatform()) {
       try {
+        // Don't pass options.scopes: the plugin already requests
+        // email/profile/openid by default, and setting scopes explicitly
+        // makes it require wiring a custom MainActivity (only needed for
+        // scopes beyond that default set, which we don't need).
         const { result } = await SocialLogin.login({
           provider: 'google',
-          options: { scopes: ['email', 'profile'] },
+          options: {},
         })
         const idToken = result?.idToken
         if (!idToken) throw new Error('Google não retornou um token de login')
