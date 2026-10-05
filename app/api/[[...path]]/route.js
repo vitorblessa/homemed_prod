@@ -62,6 +62,8 @@ async function sendPasswordResetEmail(to, name, link) {
       body: JSON.stringify({
         from,
         to,
+        // Replies to the automated email land in the support inbox.
+        reply_to: process.env.EMAIL_REPLY_TO || 'suporte@homemed.tech',
         subject: 'Redefinir sua senha do HomeMed',
         html,
         text: `Para redefinir sua senha do HomeMed, abra este link (válido por 1 hora): ${link}\n\nSe você não pediu isso, ignore este e-mail.`,
