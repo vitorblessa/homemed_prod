@@ -3,6 +3,7 @@ import { getDb } from '@/lib/mongo';
 import { enrichMedicine, enrichFromBarcodeAndImage, answerInventoryQuestion } from '@/lib/ai';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,65 @@ const COOKIE_NAME = 'homemed_session';
 const OAUTH_STATE_COOKIE = 'homemed_oauth_state';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+
+// Password reset
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // link valid for 1 hour
+const RESET_THROTTLE_MS = 60 * 1000; // at most one email per account per minute
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Sends the reset link through Resend (https://resend.com). Needs
+// RESEND_API_KEY (and a verified sender domain for EMAIL_FROM). Without the
+// key it just logs, so the rest of the app keeps working while email is
+// being set up. Never throws: the caller must answer the same way whether
+// or not the email actually went out.
+async function sendPasswordResetEmail(to, name, link) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('[password-reset] RESEND_API_KEY not set; email not sent');
+    return false;
+  }
+  const from = process.env.EMAIL_FROM || 'HomeMed <nao-responda@homemed.tech>';
+  const greeting = name ? `Olá, ${escapeHtml(name)}!` : 'Olá!';
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+      <h2 style="margin:0 0 16px">HomeMed</h2>
+      <p>${greeting}</p>
+      <p>Recebemos um pedido para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha. O link vale por 1 hora.</p>
+      <p style="margin:24px 0">
+        <a href="${link}" style="background:#2563eb;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;display:inline-block;font-weight:600">Redefinir minha senha</a>
+      </p>
+      <p style="font-size:13px;color:#475569">Se o botão não funcionar, copie e cole este endereço no navegador:<br><span style="word-break:break-all">${link}</span></p>
+      <p style="font-size:13px;color:#475569">Se você não pediu isso, pode ignorar este e-mail: sua senha continua a mesma.</p>
+    </div>`;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: 'Redefinir sua senha do HomeMed',
+        html,
+        text: `Para redefinir sua senha do HomeMed, abra este link (válido por 1 hora): ${link}\n\nSe você não pediu isso, ignore este e-mail.`,
+      }),
+    });
+    if (!res.ok) {
+      console.error('[password-reset] Resend error', res.status, await res.text().catch(() => ''));
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('[password-reset] send failed', e);
+    return false;
+  }
+}
 
 function json(data, status = 200, extra = {}) {
   const res = NextResponse.json(data, { status });
@@ -166,6 +226,58 @@ async function handle(request, ctx) {
         created_at: now,
       });
       return json({ email: user.email, name: user.name, picture: user.picture || '' }, 200, { setCookie: token });
+    }
+
+    // Step 1 of "forgot password": email a one-hour, single-use link. Always
+    // answers the same way so it can't be used to discover which emails have
+    // an account. Only a SHA-256 hash of the token is stored.
+    if (path === '/auth/forgot-password' && method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const email = (body?.email || '').toString().trim().toLowerCase();
+      const generic = { ok: true, message: 'Se existir uma conta com este e-mail, enviamos um link para redefinir a senha.' };
+      if (!email || !email.includes('@')) return json({ error: 'Informe um e-mail válido' }, 400);
+      const db = await getDb();
+      const user = await db.collection(USERS).findOne({ email });
+      if (!user) return json(generic);
+      const last = user.reset_requested_at ? new Date(user.reset_requested_at).getTime() : 0;
+      if (Date.now() - last < RESET_THROTTLE_MS) return json(generic);
+      const token = crypto.randomBytes(32).toString('hex');
+      await db.collection(USERS).updateOne(
+        { email },
+        {
+          $set: {
+            reset_token_hash: hashResetToken(token),
+            reset_expires_at: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+            reset_requested_at: new Date(),
+          },
+        }
+      );
+      const baseUrl = (process.env.APP_URL || 'https://www.homemed.tech').replace(/\/+$/, '');
+      await sendPasswordResetEmail(email, user.name, `${baseUrl}/?reset=${token}`);
+      return json(generic);
+    }
+
+    // Step 2: trade a valid token for a new password. The token is consumed
+    // atomically (single use) and every existing session of the account is
+    // revoked, in case someone else had access.
+    if (path === '/auth/reset-password' && method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const token = (body?.token || '').toString().trim();
+      const password = (body?.password || '').toString();
+      if (!token) return json({ error: 'Link inválido ou expirado' }, 400);
+      if (password.length < 6) return json({ error: 'Senha deve ter no mínimo 6 caracteres' }, 400);
+      const db = await getDb();
+      const password_hash = await bcrypt.hash(password, 10);
+      const user = await db.collection(USERS).findOneAndUpdate(
+        { reset_token_hash: hashResetToken(token), reset_expires_at: { $gt: new Date() } },
+        {
+          $set: { password_hash, updated_at: new Date() },
+          $unset: { reset_token_hash: '', reset_expires_at: '', reset_requested_at: '' },
+        }
+      );
+      if (!user) return json({ error: 'Link inválido ou expirado. Peça um novo.' }, 400);
+      await db.collection(SESSIONS).deleteMany({ email: user.email });
+      return json({ ok: true });
     }
 
     if (path === '/auth/google' && method === 'GET') {

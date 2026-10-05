@@ -313,13 +313,63 @@ function LandingScreen({ onGetStarted }) {
   )
 }
 
-function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab }) {
+function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, resetToken, onResetDone }) {
   const [tab, setTab] = useState(initialTab === 'register' ? 'register' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
+  // 'auth' = login/register, 'forgot' = ask for the reset email,
+  // 'reset' = choose a new password (opened from the emailed ?reset= link)
+  const [view, setView] = useState(resetToken ? 'reset' : 'auth')
+  const [forgotSent, setForgotSent] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+
+  const submitForgot = async () => {
+    if (!email.includes('@')) return toast.error('Informe um email válido')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Erro ao enviar o link')
+      setForgotSent(true)
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const submitReset = async () => {
+    if (newPassword.length < 6) return toast.error('Senha deve ter ao menos 6 caracteres')
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, password: newPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || 'Erro ao redefinir a senha')
+      toast.success('Senha redefinida! Entre com a nova senha.')
+      setNewPassword('')
+      setPassword('')
+      setTab('login')
+      setView('auth')
+      onResetDone?.()
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const submit = async () => {
     if (!email.includes('@')) return toast.error('Informe um email válido')
@@ -350,9 +400,9 @@ function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab }) {
       <Toaster position="top-center" richColors />
       <Card className="w-full max-w-md border-0 shadow-xl">
         <CardContent className="p-6 sm:p-8 space-y-5">
-          {onBack && (
+          {(onBack || view !== 'auth') && (
             <button
-              onClick={onBack}
+              onClick={view !== 'auth' ? () => { setView('auth'); setForgotSent(false) } : onBack}
               className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground -mb-1"
             >
               <ChevronLeft className="h-4 w-4" /> Voltar
@@ -368,6 +418,7 @@ function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab }) {
             </div>
           </div>
 
+          {view === 'auth' && (<>
           {/* Tabs */}
           <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg">
             <button
@@ -422,6 +473,15 @@ function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab }) {
                   {showPass ? 'Ocultar' : 'Mostrar'}
                 </button>
               </div>
+              {tab === 'login' && (
+                <button
+                  type="button"
+                  onClick={() => { setView('forgot'); setForgotSent(false) }}
+                  className="mt-2 text-xs text-primary hover:underline"
+                >
+                  Esqueci minha senha
+                </button>
+              )}
             </div>
             <Button onClick={submit} disabled={loading} className="w-full h-11 gap-2">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
@@ -446,6 +506,82 @@ function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab }) {
             </svg>
             Continuar com Google
           </Button>
+          </>)}
+
+          {view === 'forgot' && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <h2 className="text-lg font-semibold">Esqueci minha senha</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha.
+                </p>
+              </div>
+              {forgotSent ? (
+                <div className="rounded-lg border bg-muted/50 p-4 text-sm space-y-2">
+                  <p>
+                    Se existir uma conta com <strong>{email}</strong>, enviamos um link para redefinir a senha. Ele vale por 1 hora.
+                  </p>
+                  <p className="text-muted-foreground">Não chegou? Veja a caixa de spam ou tente de novo em alguns minutos.</p>
+                  <Button variant="outline" className="w-full" onClick={() => { setView('auth'); setForgotSent(false) }}>
+                    Voltar ao login
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs">Email</Label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      autoComplete="email"
+                      onKeyDown={e => e.key === 'Enter' && submitForgot()}
+                    />
+                  </div>
+                  <Button onClick={submitForgot} disabled={loading} className="w-full h-11 gap-2">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Enviar link
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {view === 'reset' && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <h2 className="text-lg font-semibold">Criar nova senha</h2>
+                <p className="text-sm text-muted-foreground mt-1">Escolha uma nova senha para a sua conta.</p>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs">Nova senha</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPass ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      autoComplete="new-password"
+                      onKeyDown={e => e.key === 'Enter' && submitReset()}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(v => !v)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      {showPass ? 'Ocultar' : 'Mostrar'}
+                    </button>
+                  </div>
+                </div>
+                <Button onClick={submitReset} disabled={loading} className="w-full h-11 gap-2">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  Salvar nova senha
+                </Button>
+              </div>
+            </div>
+          )}
 
           <p className="text-[11px] text-center text-muted-foreground">
             Seus medicamentos ficam privados e associados apenas à sua conta.
@@ -478,6 +614,13 @@ function App() {
   // the auth screen on that tab. Signed-out visitors land on the public
   // page first, never on a forced login wall.
   const [authMode, setAuthMode] = useState(null)
+  // Token from the emailed "reset your password" link (/?reset=TOKEN).
+  const [resetToken, setResetToken] = useState(null)
+
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('reset')
+    if (t) setResetToken(t)
+  }, [])
 
   // Android hardware back button: close whichever of these is open instead
   // of letting the WebView navigate back to the login screen. Order here
@@ -785,6 +928,25 @@ function App() {
           <Loader2 className="h-5 w-5 animate-spin" /> Carregando...
         </div>
       </div>
+    )
+  }
+
+  // Opened from the password-reset email: show the "new password" form,
+  // even if a stale session cookie exists (the reset revokes sessions).
+  if (resetToken) {
+    return (
+      <LoginScreen
+        initialTab="login"
+        resetToken={resetToken}
+        onGoogleLogin={doLogin}
+        onLoggedIn={(u) => setUser(u)}
+        onResetDone={() => {
+          window.history.replaceState({}, '', window.location.pathname)
+          setResetToken(null)
+          setUser(null)
+          setAuthMode('login')
+        }}
+      />
     )
   }
 
