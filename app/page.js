@@ -517,11 +517,38 @@ function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, resetToken
                 </p>
               </div>
               {forgotSent ? (
-                <div className="rounded-lg border bg-muted/50 p-4 text-sm space-y-2">
-                  <p>
-                    Se existir uma conta com <strong>{email}</strong>, enviamos um link para redefinir a senha. Ele vale por 1 hora.
-                  </p>
-                  <p className="text-muted-foreground">Não chegou? Veja a caixa de spam ou tente de novo em alguns minutos.</p>
+                <div className="space-y-3 text-sm">
+                  <div className="rounded-lg border bg-muted/50 p-4 space-y-1">
+                    <p>
+                      Se existir uma conta com <strong>{email}</strong>, enviamos um link para redefinir a senha. Ele vale por 1 hora.
+                    </p>
+                    <p className="text-muted-foreground">O e-mail pode levar alguns minutos para chegar.</p>
+                  </div>
+
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700/60 dark:bg-amber-950/40 p-4 space-y-2 text-amber-950 dark:text-amber-100">
+                    <p className="flex items-center gap-2 font-semibold">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      Não achou o e-mail? Olhe o lixo eletrônico!
+                    </p>
+                    <p>
+                      Ele pode ter caído na pasta de <strong>Spam / Lixo eletrônico</strong> (ou em <strong>Promoções</strong>, no Gmail). Procure um e-mail deste remetente:
+                    </p>
+                    <p className="rounded-md border border-amber-300 bg-white/70 dark:border-amber-700/60 dark:bg-black/20 px-3 py-2 text-center font-semibold break-words select-all">
+                      nao-responda@homemed.tech
+                    </p>
+                    <p>
+                      com o assunto <strong>"Redefinir sua senha do HomeMed"</strong>. Então:
+                    </p>
+                    <ol className="list-decimal pl-5 space-y-1">
+                      <li>Abra o e-mail e marque como <strong>"Não é spam"</strong> (ou mova para a caixa de entrada).</li>
+                      <li>
+                        Adicione esse endereço aos seus contatos ou marque-o como <strong>remetente confiável</strong>, para os próximos
+                        e-mails do HomeMed chegarem direto na caixa de entrada.
+                      </li>
+                      <li>Toque no botão <strong>"Redefinir minha senha"</strong> dentro do e-mail.</li>
+                    </ol>
+                  </div>
+
                   <Button variant="outline" className="w-full" onClick={() => { setView('auth'); setForgotSent(false) }}>
                     Voltar ao login
                   </Button>
@@ -539,6 +566,12 @@ function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, resetToken
                       onKeyDown={e => e.key === 'Enter' && submitForgot()}
                     />
                   </div>
+                  <p className="text-xs text-muted-foreground flex gap-2">
+                    <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>
+                      O e-mail vem de <strong className="break-words">nao-responda@homemed.tech</strong> e pode cair no lixo eletrônico (spam). Se não aparecer na caixa de entrada, olhe lá e marque como remetente confiável.
+                    </span>
+                  </p>
                   <Button onClick={submitForgot} disabled={loading} className="w-full h-11 gap-2">
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Enviar link
