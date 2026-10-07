@@ -1,93 +1,206 @@
+<div align="center">
+
+<img src="public/icon-512.png" alt="Logo do HomeMed" width="120" />
+
 # HomeMed
 
-App de farmácia doméstica — controle de medicamentos, validade, estoque e
-identificação por foto/código de barras com IA. Construído em Next.js 15
-(App Router) com MongoDB, e empacotado também como app Android via Capacitor.
+**A farmácia da sua casa, organizada.**
+Controle medicamentos, validades e estoque, com identificação por foto e código de barras usando IA.
 
-## Stack
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
+[![Capacitor](https://img.shields.io/badge/Capacitor-6-119EFF?logo=capacitor&logoColor=white)](https://capacitorjs.com/)
+[![Android](https://img.shields.io/badge/Android-Google%20Play-3DDC84?logo=android&logoColor=white)](#-app-android)
+[![Licença](https://img.shields.io/badge/licen%C3%A7a-privada-red)](#-licença)
 
-- **Next.js 15** (App Router, API routes em `app/api/[[...path]]/route.js`)
-- **MongoDB** para persistência (`lib/mongo.js`)
-- **Google Gemini** para reconhecimento de medicamentos e assistente de
-  inventário (`lib/ai.js`)
-- **Capacitor** para gerar o app Android (`/android`)
+[Acessar o app](https://www.homemed.tech) · [Política de Privacidade](https://www.homemed.tech/privacy) · [Termos de Uso](https://www.homemed.tech/terms)
 
-## Variáveis de ambiente
+</div>
 
-Copie `.env.example` para `.env` e preencha:
+---
 
-| Variável | Descrição |
+## 📋 Sumário
+
+- [Sobre o projeto](#-sobre-o-projeto)
+- [Funcionalidades](#-funcionalidades)
+- [Stack](#-stack)
+- [Primeiros passos](#-primeiros-passos)
+- [Variáveis de ambiente](#-variáveis-de-ambiente)
+- [Login com Google](#-login-com-google)
+- [Notificações de vencimento](#-notificações-de-vencimento)
+- [Deploy em produção](#-deploy-em-produção)
+- [App Android](#-app-android)
+- [Estrutura do projeto](#-estrutura-do-projeto)
+- [Licença](#-licença)
+
+## 💊 Sobre o projeto
+
+O HomeMed ajuda famílias a saber o que têm na farmácia de casa: o que está
+perto de vencer, o que já venceu e o que está acabando. É construído em
+**Next.js 15** (App Router) com **MongoDB** e também empacotado como **app
+Android** via Capacitor, que carrega o site publicado. Por isso, mudanças no
+site chegam ao app sem precisar de uma nova versão na loja.
+
+## ✨ Funcionalidades
+
+| Área | O que faz |
 |---|---|
-| `MONGO_URL` | Connection string do MongoDB Atlas (Connect → Drivers → Node.js) |
-| `DB_NAME` | Nome do banco (padrão: `homemed`) |
-| `GEMINI_API_KEY` | Chave da API do Google AI Studio (https://aistudio.google.com/apikey) |
-| `GOOGLE_CLIENT_ID` | ID do cliente OAuth do Google, para o botão "Continuar com Google" |
-| `GOOGLE_CLIENT_SECRET` | Chave secreta do mesmo cliente OAuth |
-| `CORS_ORIGINS` | Origens permitidas nas rotas `/api/*` (opcional) |
-| `FRAME_ANCESTORS` | Origens permitidas a enquadrar o app em iframe (opcional) |
+| **Cadastro inteligente** | Identifica o medicamento por foto ou código de barras com o Google Gemini |
+| **Controle de validade e estoque** | Destaca o que vence em breve, o que já venceu e o que está com pouco estoque |
+| **Avisos de vencimento** | Lembretes no celular, com dias de antecedência e horário configuráveis |
+| **Assistente de inventário** | Pergunte em linguagem natural o que você tem em casa |
+| **Compartilhamento familiar** | Uma farmácia compartilhada entre os membros da família, por código de convite |
+| **Exportação** | Relatórios em PDF, Excel (`.xlsx`) e CSV |
+| **Contas** | Cadastro por e-mail e senha ou Google, recuperação de senha por e-mail e exclusão de conta |
+| **Tema** | Modo claro e escuro |
 
-> Nunca commite o `.env` — ele já está no `.gitignore`. Em produção, defina
-> essas variáveis direto no painel da hospedagem (Vercel, Railway, etc.).
+## 🧰 Stack
 
-### Login com Google (OAuth próprio)
+| Camada | Tecnologia |
+|---|---|
+| Frontend | Next.js 15 (App Router), React 18, Tailwind CSS, shadcn/ui |
+| Backend | Rotas de API em `app/api/[[...path]]/route.js` |
+| Banco de dados | MongoDB Atlas (`lib/mongo.js`) |
+| IA | Google Gemini (`lib/ai.js`) |
+| E-mail | Resend (recuperação de senha) |
+| Mobile | Capacitor 6 (Android), login nativo do Google e notificações locais |
+| Hospedagem | Vercel, com build do Android no GitHub Actions |
 
-O botão "Continuar com Google" usa um fluxo OAuth 2.0 padrão implementado
-nas próprias rotas de API (`/api/auth/google` e `/api/auth/google/callback`
-em `app/api/[[...path]]/route.js`) — sem depender de nenhum serviço de
-terceiros. Para habilitar:
+## 🚀 Primeiros passos
 
-1. No [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
-   crie (ou reutilize) um projeto e vá em **APIs e Serviços → Credenciais**.
-2. **Criar credenciais → ID do cliente OAuth**, tipo **Aplicativo da Web**.
-3. Em **URIs de redirecionamento autorizados**, adicione uma linha para
-   cada domínio onde o app roda, por exemplo:
-   - `https://www.homemed.tech/api/auth/google/callback`
-   - `https://homemed-prod-uqag.vercel.app/api/auth/google/callback` (domínio da Vercel, útil para testes)
-   - `http://localhost:3000/api/auth/google/callback` (desenvolvimento local)
-4. Copie o **Client ID** e o **Client Secret** gerados para
-   `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`.
-5. Em **Tela de consentimento OAuth**, preencha nome do app, email de
-   suporte e o link da política de privacidade (`/privacy`). Como o app só
-   usa os escopos básicos (`openid email profile`), não é necessária
-   verificação do Google para publicar — só marcar o app como "Em produção"
-   (Publishing status) para não ficar limitado a usuários de teste.
-
-## Rodando localmente
+**Pré-requisitos:** Node.js 20+, Yarn e uma conta no MongoDB Atlas.
 
 ```bash
+# 1. Instale as dependências
 yarn install
+
+# 2. Crie o arquivo de ambiente e preencha (veja a tabela abaixo)
+cp .env.example .env
+
+# 3. Suba o servidor de desenvolvimento
 yarn dev
 ```
 
 O app sobe em `http://localhost:3000`.
 
-## Deploy em produção (Vercel)
+## 🔐 Variáveis de ambiente
+
+Copie `.env.example` para `.env` e preencha:
+
+| Variável | Obrigatória | Descrição |
+|---|:---:|---|
+| `MONGO_URL` | Sim | Connection string do MongoDB Atlas (Connect → Drivers → Node.js) |
+| `DB_NAME` | Sim | Nome do banco (padrão: `homemed`) |
+| `GEMINI_API_KEY` | Sim | Chave da API do [Google AI Studio](https://aistudio.google.com/apikey) |
+| `GOOGLE_CLIENT_ID` | Para login Google | ID do cliente OAuth do Google |
+| `GOOGLE_CLIENT_SECRET` | Para login Google | Chave secreta do mesmo cliente OAuth |
+| `RESEND_API_KEY` | Para e-mails | Chave do [Resend](https://resend.com). Sem ela o app funciona, mas o e-mail de recuperação de senha não é enviado |
+| `EMAIL_FROM` | Para e-mails | Remetente, por exemplo `HomeMed <nao-responda@homemed.tech>`. O domínio precisa estar verificado no Resend |
+| `EMAIL_REPLY_TO` | Não | Para onde vão as respostas aos e-mails automáticos (padrão: `suporte@homemed.tech`) |
+| `APP_URL` | Para e-mails | Endereço público do site, usado para montar o link do e-mail |
+| `CORS_ORIGINS` | Não | Origens permitidas nas rotas `/api/*` |
+| `FRAME_ANCESTORS` | Não | Origens permitidas a enquadrar o app em iframe |
+
+> [!WARNING]
+> Nunca commite o `.env`: ele já está no `.gitignore`. Em produção, defina as
+> variáveis direto no painel da hospedagem.
+
+## 🔑 Login com Google
+
+O botão "Continuar com Google" usa um fluxo OAuth 2.0 implementado nas próprias
+rotas de API (`/api/auth/google` e `/api/auth/google/callback`), sem serviço de
+terceiros. No app Android, o login é nativo (Credential Manager, via
+`@capgo/capacitor-social-login`) e o token é verificado em `/api/auth/google/token`.
+
+<details>
+<summary><b>Como configurar no Google Cloud Console</b></summary>
+
+1. No [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
+   crie (ou reutilize) um projeto e vá em **APIs e Serviços → Credenciais**.
+2. **Criar credenciais → ID do cliente OAuth**, tipo **Aplicativo da Web**.
+3. Em **URIs de redirecionamento autorizados**, adicione uma linha para cada
+   domínio onde o app roda, por exemplo:
+   - `https://www.homemed.tech/api/auth/google/callback`
+   - `https://homemed-prod-uqag.vercel.app/api/auth/google/callback` (domínio da Vercel, útil para testes)
+   - `http://localhost:3000/api/auth/google/callback` (desenvolvimento local)
+4. Copie o **Client ID** e o **Client Secret** para `GOOGLE_CLIENT_ID` e
+   `GOOGLE_CLIENT_SECRET`.
+5. Em **Tela de consentimento OAuth**, preencha o nome do app, o e-mail de
+   suporte e o link da política de privacidade (`/privacy`). Como o app só usa
+   os escopos básicos (`openid email profile`), não é necessária verificação do
+   Google: basta marcar o app como "Em produção" para não ficar limitado a
+   usuários de teste.
+
+</details>
+
+## 🔔 Notificações de vencimento
+
+Em **Configurações** (ícone de engrenagem), cada pessoa escolhe:
+
+- ligar ou desligar os avisos de vencimento;
+- com quanto tempo de antecedência ser avisada: 30, 15, 7, 3 ou 1 dia antes, ou no dia;
+- o horário do aviso, das 06:00 às 22:00.
+
+No app Android, os avisos são agendados **no próprio celular** com
+`@capacitor/local-notifications`, então chegam com o app fechado, sem servidor
+de push. Quando há vários remédios no mesmo dia, eles vêm numa única
+notificação. No navegador, os avisos aparecem quando o app é aberto. As
+preferências ficam salvas na conta (`GET` e `PUT /api/settings`).
+
+## ☁️ Deploy em produção
 
 1. Importe este repositório em [vercel.com/new](https://vercel.com/new).
-2. Em "Environment Variables", adicione `MONGO_URL`, `DB_NAME` e
-   `GEMINI_API_KEY` (veja a tabela acima).
-3. Clique em Deploy. O `next.config.js` já está configurado com
-   `output: 'standalone'` e cabeçalhos de segurança (CSP, CORS, etc.).
-4. Depois do primeiro deploy, ajuste `CORS_ORIGINS` e `FRAME_ANCESTORS`
-   para a URL final de produção, em vez de `*`.
+2. Em **Environment Variables**, adicione as variáveis da tabela acima.
+3. Clique em **Deploy**. O `next.config.js` já traz `output: 'standalone'` e
+   cabeçalhos de segurança (CSP, CORS etc.).
+4. Depois do primeiro deploy, ajuste `CORS_ORIGINS` e `FRAME_ANCESTORS` para a
+   URL final de produção, em vez de `*`.
 
-## App Android (Capacitor)
+## 🤖 App Android
 
-A pasta `/android` já contém o projeto nativo. Para gerar um novo build
-após alterar `capacitor.config.js` ou o frontend:
+O projeto nativo fica em `/android` (pacote `com.blessahome.homemed`). O app
+carrega o site publicado (`server.url` em `capacitor.config.js`):
+
+| Tipo de mudança | O que fazer |
+|---|---|
+| Código do site, estilos, rotas de API | Só publicar na Vercel. O app já recebe |
+| Plugin nativo, `build.gradle`, ícones ou permissões | Gerar um novo `.aab` e aumentar o `versionCode` em `android/app/build.gradle` |
+
+**Gerando o `.aab` de release:** abra a aba **Actions** do GitHub, escolha
+**Android Release Build** e clique em **Run workflow**. Ao terminar, baixe o
+artefato `homemed-release-aab` e envie no Google Play Console.
+
+**Para abrir no Android Studio:**
 
 ```bash
-yarn build
+yarn install
 npx cap sync android
 npx cap open android
 ```
 
-## Estrutura
+## 🗂️ Estrutura do projeto
 
+```text
+app/
+├── api/[[...path]]/    rotas de API (auth, famílias, medicamentos, IA, configurações)
+├── privacy/            Política de Privacidade
+├── terms/              Termos de Uso
+├── delete-account/     página pública de exclusão de conta
+└── page.js             aplicação (telas, diálogos, assistente)
+components/             componentes de UI (shadcn/ui), configurações e leitor de código de barras
+lib/                    MongoDB, IA, exportação, notificações e utilitários
+android/                projeto nativo do Capacitor
+public/                 manifest PWA, service worker e ícones
+.github/workflows/      build do app Android (.aab)
 ```
-app/                 páginas e rotas de API (Next.js App Router)
-components/          componentes de UI (shadcn/ui) e o leitor de código de barras
-lib/                 conexão com MongoDB, integração de IA, exportação, utils
-android/             projeto nativo gerado pelo Capacitor
-public/              manifest PWA, service worker, ícones
-```
+
+## 📄 Licença
+
+**Licença de uso: privada.**
+
+Este é um projeto proprietário. Todos os direitos são reservados a
+**Vitor Blessa**. O código-fonte, o nome, a marca e os materiais do HomeMed
+não podem ser copiados, modificados, distribuídos ou usados, no todo ou em
+parte, sem autorização expressa e por escrito do autor.
+
+Para falar sobre uso ou parcerias: [suporte@homemed.tech](mailto:suporte@homemed.tech).
