@@ -46,7 +46,7 @@ import BarcodeScanner from '@/components/barcode-scanner'
 import SettingsSheet from '@/components/SettingsSheet'
 import { DEFAULT_NOTIFICATION_PREFS, normalizeNotificationPrefs } from '@/lib/notification-prefs'
 import {
-  buildNotificationPlan, describeNextReminder, getNotificationPermission, isNativeApp,
+  appNeedsUpdate, buildNotificationPlan, describeNextReminder, getNotificationPermission, isNativeApp,
   onNotificationTap, requestNotificationPermission, sendTestNotification, showWebReminders,
   syncNativeReminders,
 } from '@/lib/notifications'
@@ -1462,6 +1462,7 @@ function App() {
         onSendTest={testNotification}
         nextReminder={nextReminder}
         native={isNativeApp()}
+        needsUpdate={appNeedsUpdate()}
       />
       {accountOpen && (
         <AccountDialog

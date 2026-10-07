@@ -56,6 +56,7 @@ export default function SettingsSheet({
   onSendTest,
   nextReminder, // { when, title, body } | null
   native, // true inside the Android app
+  needsUpdate, // Android app too old to have notifications
 }) {
   const [testing, setTesting] = useState(false)
 
@@ -230,7 +231,14 @@ export default function SettingsSheet({
               </div>
             )}
 
-            {permission === 'unsupported' && (
+            {permission === 'unsupported' && needsUpdate && (
+              <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 p-3 text-sm text-blue-900 dark:text-blue-200 space-y-1">
+                <p className="font-medium">Falta atualizar o app.</p>
+                <p>Esta versão do HomeMed ainda não tem as notificações. Abra a Google Play, atualize o HomeMed e volte aqui.</p>
+              </div>
+            )}
+
+            {permission === 'unsupported' && !needsUpdate && (
               <p className="text-sm text-muted-foreground">
                 Este navegador não suporta notificações. No app para Android elas funcionam normalmente.
               </p>
@@ -249,7 +257,9 @@ export default function SettingsSheet({
             <div className="flex gap-2 text-xs text-muted-foreground leading-relaxed">
               <Info className="h-4 w-4 shrink-0 mt-0.5" />
               <p>
-                {native
+                {needsUpdate
+                  ? 'Depois de atualizar, os avisos ficam agendados no seu celular e chegam mesmo com o app fechado.'
+                  : native
                   ? 'Os avisos ficam agendados no seu celular e chegam mesmo com o app fechado.'
                   : 'No navegador, os avisos aparecem quando você abre o HomeMed. No app para Android eles chegam mesmo com o app fechado.'}
               </p>
