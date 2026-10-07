@@ -1,0 +1,59 @@
+name: Database Backup
+
+# Backup diário do MongoDB Atlas (plano gratuito não tem backup automático).
+# O dump é criptografado e guardado como artifact do GitHub (fora do Atlas) por 90 dias.
+# Secrets necessários: MONGO_URL, DB_NAME (opcional) e BACKUP_PASSPHRASE.
+
+on:
+  schedule:
+    - cron: '17 6 * * *' # todo dia às 03:17 (horário de Brasília)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - name: Instalar MongoDB Database Tools
+        run: |
+          curl -fsSL -o tools.deb https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.10.0.deb
+          sudo apt-get install -y ./tools.deb
+          mongodump --version
+
+      - name: Gerar dump
+        env:
+          MONGO_URL: ${{ secrets.MONGO_URL }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MONGO_URL:-}" ]; then echo "Secret MONGO_URL não configurado"; exit 1; fi
+          DB="${DB_NAME:-homemed}"
+          mongodump --uri="$MONGO_URL" --db="$DB" --gzip --archive=dump.archive.gz
+          SIZE=$(stat -c%s dump.archive.gz)
+          echo "Tamanho do dump: $SIZE bytes"
+          if [ "$SIZE" -lt 200 ]; then echo "Dump vazio ou suspeito"; exit 1; fi
+
+      - name: Criptografar
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKUP_PASSPHRASE:-}" ]; then echo "Secret BACKUP_PASSPHRASE não configurado"; exit 1; fi
+          STAMP=$(date -u +%Y-%m-%d_%H%M)
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --passphrase "$BACKUP_PASSPHRASE" \
+            -o "homemed-backup-$STAMP.archive.gz.gpg" dump.archive.gz
+          rm -f dump.archive.gz
+          ls -l homemed-backup-*.gpg
+          echo "BACKUP_FILE=homemed-backup-$STAMP.archive.gz.gpg" >> "$GITHUB_ENV"
+
+      - name: Guardar backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: homemed-db-backup
+          path: homemed-backup-*.gpg
+          retention-days: 90
+          if-no-files-found: error

@@ -30,6 +30,7 @@ Controle medicamentos, validades e estoque, com identificação por foto e códi
 - [Notificações de vencimento](#-notificações-de-vencimento)
 - [Deploy em produção](#-deploy-em-produção)
 - [App Android](#-app-android)
+- [Backup do banco](#-backup-do-banco)
 - [Estrutura do projeto](#-estrutura-do-projeto)
 - [Licença](#-licença)
 
@@ -177,6 +178,21 @@ yarn install
 npx cap sync android
 npx cap open android
 ```
+
+## 💾 Backup do banco
+
+O workflow **Database Backup** (`.github/workflows/db-backup.yml`) roda todo dia às 03:17 (Brasília) e também sob demanda em *Actions → Database Backup → Run workflow*. Ele faz um `mongodump`, criptografa com AES-256 e guarda o arquivo como artifact por 90 dias.
+
+Secrets necessários (*Settings → Secrets and variables → Actions*): `MONGO_URL`, `DB_NAME` (opcional) e `BACKUP_PASSPHRASE`.
+
+Para restaurar:
+
+```bash
+gpg --decrypt homemed-backup-AAAA-MM-DD_HHMM.archive.gz.gpg > dump.archive.gz
+mongorestore --uri="$MONGO_URL" --gzip --archive=dump.archive.gz --nsFrom="homemed.*" --nsTo="homemed_restore.*"
+```
+
+Restaure primeiro num banco separado (`homemed_restore`) e confira os dados antes de copiar para o banco de produção.
 
 ## 🗂️ Estrutura do projeto
 
