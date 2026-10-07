@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import {
-  Settings, RefreshCw, BellRing, Bell, Check, Pill, Clock, CalendarClock, AlertTriangle, Loader2, ShieldCheck, Info,
+  Settings, RefreshCw, Compass, BellRing, Bell, Check, Pill, Clock, CalendarClock, AlertTriangle, Loader2, ShieldCheck, Info,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
@@ -69,6 +69,7 @@ export default function SettingsSheet({
   lastSync, // timestamp (ms) of the last successful sync, or null
   syncing,
   onSync,
+  onStartTour,
   needsUpdate, // Android app too old to have notifications
 }) {
   const [testing, setTesting] = useState(false)
@@ -315,6 +316,22 @@ export default function SettingsSheet({
                 <p>Os nomes dos remédios ficam ocultos na tela de bloqueio, se o seu celular estiver configurado para esconder conteúdo sensível.</p>
               </div>
             )}
+          </section>
+
+          {/* ───────── Tour ───────── */}
+          <section className="rounded-2xl border bg-card p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <IconTile className="bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400">
+                <Compass className="h-5 w-5" />
+              </IconTile>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold leading-tight">Passeio guiado</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">Reveja um tour rápido pelas principais telas do app.</p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={onStartTour} className="w-full h-11 gap-2 mt-3">
+              <Compass className="h-4 w-4" /> Rever o passeio
+            </Button>
           </section>
         </div>
       </SheetContent>

@@ -41,10 +41,11 @@ import {
   Trash2, Edit2, MapPin, FlaskConical, Moon, Sun, Loader2, MessageCircle, X,
   ChevronRight, ChevronLeft, Check, ShieldAlert, Info, Send, TrendingDown, Archive,
   ScanLine, Download, FileText, FileSpreadsheet, File, Barcode, LogOut, Bell,
-  Users, Copy, UserPlus, UserMinus, RefreshCw, Settings,
+  Users, Copy, UserPlus, UserMinus, RefreshCw, Settings, Smartphone, Globe,
 } from 'lucide-react'
 import BarcodeScanner from '@/components/barcode-scanner'
 import SettingsSheet from '@/components/SettingsSheet'
+import GuidedTour from '@/components/GuidedTour'
 import { DEFAULT_NOTIFICATION_PREFS, normalizeNotificationPrefs } from '@/lib/notification-prefs'
 import {
   appNeedsUpdate, buildNotificationPlan, describeNextReminder, getNotificationPermission, isNativeApp,
@@ -286,6 +287,20 @@ function LandingScreen({ onGetStarted }) {
               Já tenho conta
             </Button>
           </div>
+        </div>
+
+        {/* Site + app */}
+        <div className="rounded-2xl border bg-white/70 dark:bg-slate-900/60 backdrop-blur p-4 sm:p-5 shadow-sm">
+          <div className="flex items-center justify-center gap-3 text-blue-600 dark:text-blue-400">
+            <Globe className="h-6 w-6" />
+            <RefreshCw className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <Smartphone className="h-6 w-6" />
+          </div>
+          <h2 className="text-center font-semibold mt-3">Site e app, sempre em sincronia</h2>
+          <p className="text-sm text-muted-foreground text-center mt-1.5 max-w-md mx-auto leading-relaxed">
+            Sua conta funciona no site e no app Android. O que você cadastra em um aparece no outro
+            automaticamente, e você pode sincronizar na hora em <strong className="font-medium text-foreground">Configurações</strong>.
+          </p>
         </div>
 
         {/* Features */}
@@ -657,6 +672,8 @@ function App() {
   const [notifPermission, setNotifPermission] = useState('prompt')
   const [nextReminder, setNextReminder] = useState(null)
   const saveTimer = useRef(null)
+  const [tourOpen, setTourOpen] = useState(false)
+  const [tourDone, setTourDone] = useState(null) // null = not known yet
   const lastSigRef = useRef('')
   const [lastSync, setLastSync] = useState(null)
   const [syncing, setSyncing] = useState(false)
@@ -678,6 +695,7 @@ function App() {
   // doesn't matter — the hook tracks whichever was opened most recently.
   useAndroidBack(accountOpen, () => setAccountOpen(false))
   useAndroidBack(settingsOpen, () => setSettingsOpen(false))
+  useAndroidBack(tourOpen, () => finishTour())
   useAndroidBack(familyOpen, () => setFamilyOpen(false))
   useAndroidBack(aiOpen, () => setAiOpen(false))
   useAndroidBack(!!detailMed, () => setDetailMed(null))
@@ -841,7 +859,9 @@ function App() {
     fetch('/api/settings', { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        if (cancelled || !d?.notifications) return
+        if (cancelled || !d) return
+        if (typeof d.tour_completed === 'boolean') setTourDone(d.tour_completed)
+        if (!d.notifications) return
         const p = normalizeNotificationPrefs(d.notifications)
         notifPrefsRef.current = p
         setNotifPrefs(p)
@@ -858,6 +878,34 @@ function App() {
   useEffect(() => {
     if (settingsOpen) getNotificationPermission().then(setNotifPermission)
   }, [settingsOpen])
+
+  // Guided tour: offered once to new accounts (no medicines yet), remembered
+  // on the account so it doesn't repeat on another device. Can be replayed
+  // from Settings.
+  function finishTour() {
+    setTourOpen(false)
+    if (tourDone !== true) {
+      setTourDone(true)
+      fetch('/api/settings', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tour_completed: true }),
+      }).catch(() => {})
+    }
+  }
+
+  const startTour = useCallback(() => {
+    setSettingsOpen(false)
+    setTimeout(() => setTourOpen(true), 400)
+  }, [])
+
+  useEffect(() => {
+    if (!user || tourDone !== false || tourOpen || lastSync == null) return
+    if (stats.total > 0 || settingsOpen || addOpen || aiOpen || familyOpen || accountOpen) return
+    const t = setTimeout(() => setTourOpen(true), 900)
+    return () => clearTimeout(t)
+  }, [user, tourDone, tourOpen, lastSync, stats.total, settingsOpen, addOpen, aiOpen, familyOpen, accountOpen])
 
   const updateNotifPrefs = useCallback((patch) => {
     const next = normalizeNotificationPrefs({ ...notifPrefsRef.current, ...patch })
@@ -934,14 +982,15 @@ function App() {
 
   // One friendly nudge (once) to turn the reminders on.
   useEffect(() => {
-    if (!user || !prefsLoaded || !notifPrefs.enabled || notifPermission !== 'prompt') return
+    // Wait for the guided tour (new accounts) so the toast doesn't cover it.
+    if (!user || !prefsLoaded || tourDone !== true || tourOpen || !notifPrefs.enabled || notifPermission !== 'prompt') return
     const key = `homemed_notif_nudged_${user.email}`
     try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1') } catch { return }
     toast('Quer ser avisado quando um remédio estiver para vencer?', {
       duration: 12000,
       action: { label: 'Configurar', onClick: () => setSettingsOpen(true) },
     })
-  }, [user, prefsLoaded, notifPrefs.enabled, notifPermission])
+  }, [user, prefsLoaded, tourDone, tourOpen, notifPrefs.enabled, notifPermission])
 
   const doLogin = async () => {
     // Inside the Android app, Google blocks OAuth in embedded WebViews and
@@ -1174,6 +1223,7 @@ function App() {
             <Button
               variant="ghost"
               size="icon"
+              data-tour="settings"
               onClick={() => setSettingsOpen(true)}
               className="rounded-full"
               aria-label="Configurações"
@@ -1190,7 +1240,7 @@ function App() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="rounded-full ring-1 ring-border hover:ring-primary/50 transition overflow-hidden shrink-0" aria-label="Perfil">
+                <button data-tour="profile" className="rounded-full ring-1 ring-border hover:ring-primary/50 transition overflow-hidden shrink-0" aria-label="Perfil">
                   {user.picture ? (
                     <img src={user.picture} alt="" className="w-8 h-8 object-cover" referrerPolicy="no-referrer" />
                   ) : (
@@ -1254,6 +1304,7 @@ function App() {
                 />
               </div>
               <Button
+                data-tour="add"
                 onClick={() => setAddOpen(true)}
                 className="h-11 bg-white text-blue-700 hover:bg-blue-50 font-semibold gap-2 shadow-md"
               >
@@ -1264,7 +1315,7 @@ function App() {
         </section>
 
         {/* Stats grid */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+        <section data-tour="stats" className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
           <StatCard
             icon={Boxes}
             label="Medicamentos"
@@ -1463,6 +1514,7 @@ function App() {
 
       {/* Floating AI assistant button */}
       <button
+        data-tour="assistant"
         onClick={() => setAiOpen(true)}
         className="fixed bottom-[calc(6rem+var(--safe-area-inset-bottom,0px))] right-4 sm:bottom-6 sm:right-6 h-14 w-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all z-30 flex items-center justify-center"
         aria-label="Assistente IA"
@@ -1513,6 +1565,7 @@ function App() {
           onChanged={() => { loadAll() }}
         />
       )}
+      <GuidedTour open={tourOpen} onFinish={finishTour} />
       <SettingsSheet
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
@@ -1527,6 +1580,7 @@ function App() {
         lastSync={lastSync}
         syncing={syncing}
         onSync={syncNow}
+        onStartTour={startTour}
       />
       {accountOpen && (
         <AccountDialog

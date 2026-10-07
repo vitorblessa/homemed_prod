@@ -685,21 +685,33 @@ async function handle(request, ctx) {
     if (path === '/settings' && method === 'GET') {
       const db = await getDb();
       const doc = await db.collection(USERS).findOne({ email: userEmail });
-      return json({ notifications: normalizeNotificationPrefs(doc?.settings?.notifications) });
+      return json({
+        notifications: normalizeNotificationPrefs(doc?.settings?.notifications),
+        tour_completed: doc?.settings?.tour_completed === true,
+      });
     }
 
+    // Accepts any subset of: { notifications: {...}, tour_completed: boolean }
     if (path === '/settings' && method === 'PUT') {
       const body = await request.json().catch(() => ({}));
-      if (!body || typeof body.notifications !== 'object' || body.notifications === null) {
+      const hasNotif = body && typeof body.notifications === 'object' && body.notifications !== null;
+      const hasTour = body && typeof body.tour_completed === 'boolean';
+      if (!hasNotif && !hasTour) {
         return json({ error: 'Configurações inválidas' }, 400);
       }
-      const notifications = normalizeNotificationPrefs(body.notifications);
+      const set = { updated_at: new Date() };
+      const out = {};
+      if (hasNotif) {
+        out.notifications = normalizeNotificationPrefs(body.notifications);
+        set['settings.notifications'] = out.notifications;
+      }
+      if (hasTour) {
+        out.tour_completed = body.tour_completed;
+        set['settings.tour_completed'] = body.tour_completed;
+      }
       const db = await getDb();
-      await db.collection(USERS).updateOne(
-        { email: userEmail },
-        { $set: { 'settings.notifications': notifications, updated_at: new Date() } }
-      );
-      return json({ notifications });
+      await db.collection(USERS).updateOne({ email: userEmail }, { $set: set });
+      return json(out);
     }
 
     // ============ PUSH SUBSCRIPTIONS ============
