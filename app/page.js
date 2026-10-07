@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTheme } from 'next-themes'
 import { Capacitor } from '@capacitor/core'
+import { App as CapApp } from '@capacitor/app'
 import { SocialLogin } from '@capgo/capacitor-social-login'
 
 // Web OAuth Client ID (not a secret — it's a public identifier). Same
@@ -656,6 +657,9 @@ function App() {
   const [notifPermission, setNotifPermission] = useState('prompt')
   const [nextReminder, setNextReminder] = useState(null)
   const saveTimer = useRef(null)
+  const lastSigRef = useRef('')
+  const [lastSync, setLastSync] = useState(null)
+  const [syncing, setSyncing] = useState(false)
   const notifPrefsRef = useRef(DEFAULT_NOTIFICATION_PREFS)
   // null = showing the public landing page; 'login' | 'register' = showing
   // the auth screen on that tab. Signed-out visitors land on the public
@@ -681,9 +685,13 @@ function App() {
   useAndroidBack(addOpen, () => setAddOpen(false))
   useAndroidBack(!!authMode, () => setAuthMode(null))
 
-  const loadAll = useCallback(async () => {
-    if (!user) return
-    setLoading(true)
+  // Loads medicines + stats. `silent` skips the loading spinner (background
+  // refreshes). Only touches state when the data really changed, so a quiet
+  // refresh doesn't redraw the list or reschedule reminders for nothing.
+  // Resolves to true when the server answered.
+  const loadAll = useCallback(async ({ silent = false } = {}) => {
+    if (!user) return false
+    if (!silent) setLoading(true)
     try {
       const params = new URLSearchParams()
       if (search) params.set('q', search)
@@ -692,16 +700,33 @@ function App() {
         fetch('/api/medicines?' + params.toString(), { credentials: 'include' }),
         fetch('/api/stats', { credentials: 'include' }),
       ])
+      if (!medRes.ok || !statRes.ok) throw new Error('bad status')
       const medData = await medRes.json()
       const statData = await statRes.json()
-      setMedicines(medData.medicines || [])
-      setStats(statData)
+      const sig = JSON.stringify([medData.medicines || [], statData])
+      if (sig !== lastSigRef.current) {
+        lastSigRef.current = sig
+        setMedicines(medData.medicines || [])
+        setStats(statData)
+      }
+      setLastSync(Date.now())
+      return true
     } catch (e) {
-      toast.error('Erro ao carregar dados')
+      if (!silent) toast.error('Erro ao carregar dados')
+      return false
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [search, filterCat, user])
+
+  // Manual "Sincronizar agora" (Settings).
+  const syncNow = useCallback(async () => {
+    setSyncing(true)
+    const ok = await loadAll({ silent: true })
+    setSyncing(false)
+    if (ok) toast.success('Tudo sincronizado!')
+    else toast.error('Não consegui sincronizar. Verifique a conexão.')
+  }, [loadAll])
 
   // ============ AUTH ============
   useEffect(() => {
@@ -760,6 +785,42 @@ function App() {
   }, [])
 
   useEffect(() => { if (user) loadAll() }, [loadAll, user])
+
+  // Keep the list in step with changes made elsewhere (the website, another
+  // family member): refresh when the app comes back to the foreground and
+  // every minute while it is open. Quiet and throttled.
+  const loadAllRef = useRef(loadAll)
+  useEffect(() => { loadAllRef.current = loadAll }, [loadAll])
+  useEffect(() => {
+    if (!user) return
+    let last = Date.now()
+    const refresh = (minGap) => {
+      if (document.visibilityState === 'hidden') return
+      if (Date.now() - last < minGap) return
+      last = Date.now()
+      loadAllRef.current({ silent: true })
+    }
+    const onVisible = () => refresh(10000)
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    window.addEventListener('online', onVisible)
+    const timer = setInterval(() => refresh(55000), 60000)
+    let appHandle = null
+    let cancelled = false
+    if (Capacitor.isNativePlatform()) {
+      CapApp.addListener('appStateChange', (st) => { if (st.isActive) refresh(10000) })
+        .then(h => { if (cancelled) h.remove(); else appHandle = h })
+        .catch(() => {})
+    }
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+      window.removeEventListener('online', onVisible)
+      clearInterval(timer)
+      appHandle?.remove()
+    }
+  }, [user])
 
   // ============ NOTIFICATIONS ============
   useEffect(() => {
@@ -1463,6 +1524,9 @@ function App() {
         nextReminder={nextReminder}
         native={isNativeApp()}
         needsUpdate={appNeedsUpdate()}
+        lastSync={lastSync}
+        syncing={syncing}
+        onSync={syncNow}
       />
       {accountOpen && (
         <AccountDialog

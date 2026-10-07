@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  Settings, BellRing, Bell, Check, Pill, Clock, CalendarClock, AlertTriangle, Loader2, ShieldCheck, Info,
+  Settings, RefreshCw, BellRing, Bell, Check, Pill, Clock, CalendarClock, AlertTriangle, Loader2, ShieldCheck, Info,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
@@ -16,6 +16,16 @@ const pad = (n) => String(n).padStart(2, '0')
 const SAMPLE = {
   title: 'Medicamento perto de vencer',
   body: 'Dipirona 500mg vence em 7 dias.',
+}
+
+// "agora mesmo", "há 3 min", "há 2 h"
+function ago(ts, now) {
+  if (!ts) return null
+  const s = Math.max(0, Math.round((now - ts) / 1000))
+  if (s < 45) return 'agora mesmo'
+  const m = Math.round(s / 60)
+  if (m < 60) return `há ${m} min`
+  return `há ${Math.round(m / 60)} h`
 }
 
 function IconTile({ children, className = '' }) {
@@ -56,9 +66,19 @@ export default function SettingsSheet({
   onSendTest,
   nextReminder, // { when, title, body } | null
   native, // true inside the Android app
+  lastSync, // timestamp (ms) of the last successful sync, or null
+  syncing,
+  onSync,
   needsUpdate, // Android app too old to have notifications
 }) {
   const [testing, setTesting] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!open) return
+    setNow(Date.now())
+    const t = setInterval(() => setNow(Date.now()), 15000)
+    return () => clearInterval(t)
+  }, [open, lastSync])
 
   const toggleDay = (value) => {
     const has = prefs.days_before.includes(value)
@@ -188,6 +208,31 @@ export default function SettingsSheet({
                 )}
               </div>
             )}
+          </section>
+
+          {/* ───────── Sync ───────── */}
+          <section className="rounded-2xl border bg-card p-4 space-y-3 shadow-sm">
+            <div className="flex items-start gap-3">
+              <IconTile className="bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400">
+                <RefreshCw className={`h-5 w-5 ${syncing ? 'animate-spin' : ''}`} />
+              </IconTile>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold leading-tight">Sincronizar remédios</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {lastSync ? `Última sincronização: ${ago(lastSync, now)}` : 'Ainda não sincronizado nesta sessão'}
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={onSync} disabled={syncing} className="w-full h-11 gap-2">
+              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              {syncing ? 'Sincronizando...' : 'Sincronizar agora'}
+            </Button>
+            <div className="flex gap-2 text-xs text-muted-foreground leading-relaxed">
+              <Info className="h-4 w-4 shrink-0 mt-0.5" />
+              <p>
+                Mudanças feitas no site, ou por alguém da família, aparecem aqui sozinhas: quando você abre o app e a cada minuto. Use o botão se quiser ver na hora.
+              </p>
+            </div>
           </section>
 
           {/* ───────── Phone permission ───────── */}
