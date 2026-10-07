@@ -4,6 +4,7 @@ import { enrichMedicine, enrichFromBarcodeAndImage, answerInventoryQuestion } fr
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { normalizeNotificationPrefs } from '@/lib/notification-prefs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -675,6 +676,30 @@ async function handle(request, ctx) {
       await db.collection(FAMILIES).updateOne({ id: fam.id }, { $pull: { member_emails: memberEmail } });
       await db.collection(USERS).updateOne({ email: memberEmail }, { $set: { family_id: null } });
       return json({ ok: true });
+    }
+
+    // ============ SETTINGS ============
+    // Per-user app preferences (currently: expiry-notification settings).
+    // Stored on the user document so they follow the account across devices;
+    // each device schedules its own local notifications from them.
+    if (path === '/settings' && method === 'GET') {
+      const db = await getDb();
+      const doc = await db.collection(USERS).findOne({ email: userEmail });
+      return json({ notifications: normalizeNotificationPrefs(doc?.settings?.notifications) });
+    }
+
+    if (path === '/settings' && method === 'PUT') {
+      const body = await request.json().catch(() => ({}));
+      if (!body || typeof body.notifications !== 'object' || body.notifications === null) {
+        return json({ error: 'Configurações inválidas' }, 400);
+      }
+      const notifications = normalizeNotificationPrefs(body.notifications);
+      const db = await getDb();
+      await db.collection(USERS).updateOne(
+        { email: userEmail },
+        { $set: { 'settings.notifications': notifications, updated_at: new Date() } }
+      );
+      return json({ notifications });
     }
 
     // ============ PUSH SUBSCRIPTIONS ============

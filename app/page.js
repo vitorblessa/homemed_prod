@@ -40,9 +40,16 @@ import {
   Trash2, Edit2, MapPin, FlaskConical, Moon, Sun, Loader2, MessageCircle, X,
   ChevronRight, ChevronLeft, Check, ShieldAlert, Info, Send, TrendingDown, Archive,
   ScanLine, Download, FileText, FileSpreadsheet, File, Barcode, LogOut, Bell,
-  Users, Copy, UserPlus, UserMinus, RefreshCw,
+  Users, Copy, UserPlus, UserMinus, RefreshCw, Settings,
 } from 'lucide-react'
 import BarcodeScanner from '@/components/barcode-scanner'
+import SettingsSheet from '@/components/SettingsSheet'
+import { DEFAULT_NOTIFICATION_PREFS, normalizeNotificationPrefs } from '@/lib/notification-prefs'
+import {
+  buildNotificationPlan, describeNextReminder, getNotificationPermission, isNativeApp,
+  onNotificationTap, requestNotificationPermission, sendTestNotification, showWebReminders,
+  syncNativeReminders,
+} from '@/lib/notifications'
 import { exportToPDF, exportToExcel, exportToCSV } from '@/lib/export'
 
 const CATEGORIA_COLORS = {
@@ -643,6 +650,13 @@ function App() {
   const [aiOpen, setAiOpen] = useState(false)
   const [familyOpen, setFamilyOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [notifPrefs, setNotifPrefs] = useState(DEFAULT_NOTIFICATION_PREFS)
+  const [prefsLoaded, setPrefsLoaded] = useState(false)
+  const [notifPermission, setNotifPermission] = useState('prompt')
+  const [nextReminder, setNextReminder] = useState(null)
+  const saveTimer = useRef(null)
+  const notifPrefsRef = useRef(DEFAULT_NOTIFICATION_PREFS)
   // null = showing the public landing page; 'login' | 'register' = showing
   // the auth screen on that tab. Signed-out visitors land on the public
   // page first, never on a forced login wall.
@@ -659,6 +673,7 @@ function App() {
   // of letting the WebView navigate back to the login screen. Order here
   // doesn't matter — the hook tracks whichever was opened most recently.
   useAndroidBack(accountOpen, () => setAccountOpen(false))
+  useAndroidBack(settingsOpen, () => setSettingsOpen(false))
   useAndroidBack(familyOpen, () => setFamilyOpen(false))
   useAndroidBack(aiOpen, () => setAiOpen(false))
   useAndroidBack(!!detailMed, () => setDetailMed(null))
@@ -746,86 +761,126 @@ function App() {
 
   useEffect(() => { if (user) loadAll() }, [loadAll, user])
 
-  // ============ NOTIFICATIONS: register SW + schedule local notifications ============
+  // ============ NOTIFICATIONS ============
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (!('serviceWorker' in navigator)) return
     navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW register failed', err))
   }, [])
 
+  // Preferences: show the cached copy instantly, then refresh from the server.
   useEffect(() => {
-    if (!user || medicines.length === 0) return
-    if (typeof window === 'undefined' || !('Notification' in window)) return
+    if (!user) return
+    const cacheKey = `homemed_notif_prefs_${user.email}`
+    try {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) { const p = normalizeNotificationPrefs(JSON.parse(cached)); notifPrefsRef.current = p; setNotifPrefs(p) }
+    } catch { /* ignore */ }
+    let cancelled = false
+    fetch('/api/settings', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (cancelled || !d?.notifications) return
+        const p = normalizeNotificationPrefs(d.notifications)
+        notifPrefsRef.current = p
+        setNotifPrefs(p)
+        try { localStorage.setItem(cacheKey, JSON.stringify(p)) } catch { /* ignore */ }
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setPrefsLoaded(true) })
+    getNotificationPermission().then(setNotifPermission)
+    return () => { cancelled = true }
+  }, [user])
 
-    const scheduleAll = async () => {
-      if (Notification.permission === 'default') {
-        try { await Notification.requestPermission() } catch { /* ignore */ }
-      }
-      if (Notification.permission !== 'granted') return
+  // Re-check the permission whenever the sheet opens (the user may have
+  // changed it in Android's system settings).
+  useEffect(() => {
+    if (settingsOpen) getNotificationPermission().then(setNotifPermission)
+  }, [settingsOpen])
 
-      const reg = await navigator.serviceWorker?.ready?.catch(() => null)
-
-      const today = new Date().toISOString().slice(0, 10)
-      const notifiedKey = `homemed_notified_${user.email}_${today}`
-      const alreadyNotified = new Set(JSON.parse(localStorage.getItem(notifiedKey) || '[]'))
-
-      // 1) Show notifications for meds expiring TODAY (fallback for browsers without TimestampTrigger)
-      const expiringToday = medicines.filter(m => m.days_until_expiry === 0 && !alreadyNotified.has(m.id))
-      for (const m of expiringToday) {
-        try {
-          const options = {
-            body: `${m.nome_comercial}${m.concentracao ? ' ' + m.concentracao : ''} vence HOJE. Considere descartar.`,
-            icon: '/icon-192.png',
-            tag: `expire-${m.id}`,
-            data: { medicine_id: m.id, url: '/' },
-          }
-          if (reg) {
-            await reg.showNotification('HomeMed — Medicamento vencendo HOJE', options)
-          } else {
-            new Notification('HomeMed — Medicamento vencendo HOJE', options)
-          }
-          alreadyNotified.add(m.id)
-        } catch { /* ignore */ }
-      }
-      localStorage.setItem(notifiedKey, JSON.stringify([...alreadyNotified]))
-
-      // 2) Schedule future notifications for meds expiring later using TimestampTrigger
-      //    Supported on Chrome/Samsung Internet (Chromium-based). Fires even when app closed.
-      if (!reg || typeof window.TimestampTrigger === 'undefined') return
-
-      const scheduledKey = `homemed_scheduled_${user.email}`
-      const scheduledSet = new Set(JSON.parse(localStorage.getItem(scheduledKey) || '[]'))
-
-      for (const m of medicines) {
-        if (!m.data_validade) continue
-        const validade = new Date(m.data_validade)
-        if (isNaN(validade)) continue
-        // Schedule at 9 AM on the expiration day
-        validade.setHours(9, 0, 0, 0)
-        const now = Date.now()
-        const trigger = validade.getTime()
-        if (trigger <= now) continue
-        const key = `sched-${m.id}-${m.data_validade}`
-        if (scheduledSet.has(key)) continue
-
-        try {
-          await reg.showNotification('HomeMed — Medicamento vencendo HOJE', {
-            body: `${m.nome_comercial}${m.concentracao ? ' ' + m.concentracao : ''} vence hoje. Considere descartar.`,
-            icon: '/icon-192.png',
-            tag: `expire-${m.id}`,
-            data: { medicine_id: m.id, url: '/' },
-            showTrigger: new window.TimestampTrigger(trigger),
-          })
-          scheduledSet.add(key)
-        } catch (e) {
-          // TimestampTrigger might throw on unsupported browsers
-          console.warn('Schedule failed for', m.nome_comercial, e)
-        }
-      }
-      localStorage.setItem(scheduledKey, JSON.stringify([...scheduledSet]))
+  const updateNotifPrefs = useCallback((patch) => {
+    const next = normalizeNotificationPrefs({ ...notifPrefsRef.current, ...patch })
+    notifPrefsRef.current = next
+    setNotifPrefs(next)
+    if (user) {
+      try { localStorage.setItem(`homemed_notif_prefs_${user.email}`, JSON.stringify(next)) } catch { /* ignore */ }
     }
-    scheduleAll()
-  }, [user, medicines])
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      fetch('/api/settings', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notifications: next }),
+      }).then(r => { if (!r.ok) throw new Error() })
+        .catch(() => toast.error('Não consegui salvar as configurações. Tente de novo.'))
+    }, 600)
+  }, [user])
+
+  const askNotificationPermission = useCallback(async () => {
+    const p = await requestNotificationPermission()
+    setNotifPermission(p)
+    if (p === 'granted') toast.success('Notificações ativadas!')
+    else if (p === 'denied') toast.error('As notificações continuam bloqueadas.')
+  }, [])
+
+  const testNotification = useCallback(async () => {
+    try {
+      await sendTestNotification()
+      toast.success('Enviada! Ela chega em instantes.')
+    } catch {
+      toast.error('Não foi possível enviar o teste.')
+    }
+  }, [])
+
+  // Keep the reminders in step with the medicines, settings and permission.
+  // Uses the FULL medicine list (the list on screen may be filtered).
+  useEffect(() => {
+    if (!user || !prefsLoaded) return
+    let cancelled = false
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/medicines', { credentials: 'include' })
+        if (!res.ok) return
+        const all = (await res.json()).medicines || []
+        if (cancelled) return
+        let plan
+        if (isNativeApp()) {
+          plan = await syncNativeReminders(all, notifPrefs)
+        } else {
+          plan = notifPrefs.enabled ? buildNotificationPlan(all, notifPrefs) : []
+          await showWebReminders(all, notifPrefs, user.email)
+        }
+        if (!cancelled) setNextReminder(describeNextReminder(plan))
+      } catch (e) {
+        console.warn('Reminder sync failed', e)
+      }
+    }, 800)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [user, prefsLoaded, medicines, notifPrefs, notifPermission])
+
+  // Tapping a reminder opens the list filtered to what is about to expire.
+  useEffect(() => {
+    if (!user) return
+    return onNotificationTap((extra) => {
+      if (extra?.type === 'expiry') {
+        setSearch('')
+        setFilterCat('all')
+        setStatusFilter('expiring')
+      }
+    })
+  }, [user])
+
+  // One friendly nudge (once) to turn the reminders on.
+  useEffect(() => {
+    if (!user || !prefsLoaded || !notifPrefs.enabled || notifPermission !== 'prompt') return
+    const key = `homemed_notif_nudged_${user.email}`
+    try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1') } catch { return }
+    toast('Quer ser avisado quando um remédio estiver para vencer?', {
+      duration: 12000,
+      action: { label: 'Configurar', onClick: () => setSettingsOpen(true) },
+    })
+  }, [user, prefsLoaded, notifPrefs.enabled, notifPermission])
 
   const doLogin = async () => {
     // Inside the Android app, Google blocks OAuth in embedded WebViews and
@@ -1058,6 +1113,15 @@ function App() {
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setSettingsOpen(true)}
+              className="rounded-full"
+              aria-label="Configurações"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="rounded-full"
             >
@@ -1083,6 +1147,9 @@ function App() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setFamilyOpen(true)}>
                   <Users className="h-4 w-4 mr-2 text-blue-600" /> Compartilhamento familiar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                  <Settings className="h-4 w-4 mr-2 text-slate-600" /> Configurações
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setAccountOpen(true)}>
                   <ShieldAlert className="h-4 w-4 mr-2 text-amber-600" /> Gerenciar conta
@@ -1385,6 +1452,17 @@ function App() {
           onChanged={() => { loadAll() }}
         />
       )}
+      <SettingsSheet
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        prefs={notifPrefs}
+        onChange={updateNotifPrefs}
+        permission={notifPermission}
+        onRequestPermission={askNotificationPermission}
+        onSendTest={testNotification}
+        nextReminder={nextReminder}
+        native={isNativeApp()}
+      />
       {accountOpen && (
         <AccountDialog
           open={accountOpen}

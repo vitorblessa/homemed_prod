@@ -36,6 +36,11 @@ const config = {
     // and the navigation bar. This plugin reports the real inset sizes as
     // CSS variables (see app/globals.css), which we also use to paint the
     // system bars white/dark-content to match the app's light theme.
+    // Expiry reminders are scheduled on the device (works with the app closed).
+    LocalNotifications: {
+      smallIcon: 'ic_stat_homemed',
+      iconColor: '#2563EB',
+    },
     SafeArea: {
       enabled: true,
       customColorsForSystemBars: true,
