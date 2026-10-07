@@ -718,7 +718,7 @@ function App() {
       // new native build.
       SafeArea.enable({
         config: {
-          customColorsForSystemBars: true,
+          customColorsForSystemBars: false,
           // Android's Color.parseColor expects alpha FIRST (#AARRGGBB), not
           // last — #2563EBFF was being read as ~14% opacity, so it looked
           // like nothing happened. FF prefix = fully opaque.

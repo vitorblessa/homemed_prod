@@ -43,7 +43,7 @@ const config = {
     },
     SafeArea: {
       enabled: true,
-      customColorsForSystemBars: true,
+      customColorsForSystemBars: false,
       // AARRGGBB format (alpha first) — see note in app/page.js.
       statusBarColor: '#FF2563EB',
       statusBarContent: 'light',
