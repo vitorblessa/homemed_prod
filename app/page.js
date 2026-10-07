@@ -2563,6 +2563,38 @@ function AccountDialog({ open, onOpenChange, user, onGone }) {
 }
 
 
+// Renders the assistant's light markdown (**bold**, "- " / "1. " lists, line
+// breaks) so the chat doesn't show raw asterisks.
+function ChatText({ text }) {
+  const inline = (s, k) => s.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    /^\*\*[^*]+\*\*$/.test(part)
+      ? <strong key={`${k}-${i}`}>{part.slice(2, -2)}</strong>
+      : part.replace(/\*\*/g, '')
+  )
+  const blocks = []
+  let list = null
+  String(text || '').replace(/\r/g, '').split('\n').forEach((raw, idx) => {
+    const line = raw.trim()
+    const item = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)$/)
+    if (item) {
+      if (!list) { list = []; blocks.push({ type: 'list', items: list }) }
+      list.push(item[1])
+    } else {
+      list = null
+      if (line) blocks.push({ type: 'p', text: line, idx })
+    }
+  })
+  return (
+    <div className="space-y-1.5 leading-relaxed">
+      {blocks.map((b, i) => b.type === 'list' ? (
+        <ul key={i} className="list-disc pl-5 space-y-1">
+          {b.items.map((it, j) => <li key={j}>{inline(it, `${i}-${j}`)}</li>)}
+        </ul>
+      ) : <p key={i}>{inline(b.text, i)}</p>)}
+    </div>
+  )
+}
+
 function AIAssistantSheet({ open, onOpenChange }) {
   const [messages, setMessages] = useState([
     { role: 'assistant', text: 'Olá! Sou seu assistente HomeMed. Pergunte coisas como: "Tenho algum antialérgico em casa?" ou "Qual remédio tenho para dor de cabeça?"' }
@@ -2628,7 +2660,7 @@ function AIAssistantSheet({ open, onOpenChange }) {
                   ? 'bg-blue-600 text-white rounded-br-sm'
                   : 'bg-muted rounded-bl-sm'
               }`}>
-                {m.text}
+                {m.role === 'user' ? m.text : <ChatText text={m.text} />}
               </div>
             </div>
           ))}
@@ -2655,7 +2687,7 @@ function AIAssistantSheet({ open, onOpenChange }) {
           </div>
         )}
 
-        <div className="p-4 border-t flex gap-2">
+        <div className="p-4 pb-[calc(1rem+var(--safe-area-inset-bottom,0px))] border-t flex gap-2">
           <Input
             value={input}
             onChange={e => setInput(e.target.value)}
