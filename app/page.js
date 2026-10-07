@@ -420,7 +420,7 @@ function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, resetToken
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-slate-950 dark:via-slate-950 dark:to-emerald-950">
-      <Toaster position="top-center" richColors />
+      <Toaster position="top-center" richColors offset="calc(var(--safe-area-inset-top, 0px) + 12px)" mobileOffset="calc(var(--safe-area-inset-top, 0px) + 12px)" />
       <Card className="w-full max-w-md border-0 shadow-xl">
         <CardContent className="p-6 sm:p-8 space-y-5">
           {(onBack || view !== 'auth') && (
@@ -861,6 +861,8 @@ function App() {
       .then(d => {
         if (cancelled || !d) return
         if (typeof d.tour_completed === 'boolean') setTourDone(d.tour_completed)
+        // Theme follows the account across devices (the local copy only makes it instant).
+        if (d.theme === 'light' || d.theme === 'dark') setTheme(d.theme)
         if (!d.notifications) return
         const p = normalizeNotificationPrefs(d.notifications)
         notifPrefsRef.current = p
@@ -893,6 +895,17 @@ function App() {
         body: JSON.stringify({ tour_completed: true }),
       }).catch(() => {})
     }
+  }
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    fetch('/api/settings', {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: next }),
+    }).catch(() => {})
   }
 
   const startTour = useCallback(() => {
@@ -1164,7 +1177,7 @@ function App() {
 
   return (
     <div className="min-h-screen">
-      <Toaster position="top-center" richColors />
+      <Toaster position="top-center" richColors offset="calc(var(--safe-area-inset-top, 0px) + 12px)" mobileOffset="calc(var(--safe-area-inset-top, 0px) + 12px)" />
 
       {/* Header */}
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-xl">
@@ -1233,7 +1246,7 @@ function App() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onClick={() => toggleTheme()}
               className="rounded-full"
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -1468,7 +1481,7 @@ function App() {
                 </p>
                 {statusFilter === 'all' && filterCat === 'all' && (
                   <>
-                    <p className="text-sm text-muted-foreground mt-1">Comece cadastrando seu primeiro medicamento com IA.</p>
+                    <p className="text-sm text-muted-foreground mt-1 px-12 sm:px-0">Comece cadastrando seu primeiro medicamento com IA.</p>
                     <Button className="mt-4 gap-2" onClick={() => setAddOpen(true)}>
                       <Sparkles className="h-4 w-4" /> Cadastrar com IA
                     </Button>

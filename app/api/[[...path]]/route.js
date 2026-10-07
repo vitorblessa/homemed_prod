@@ -688,15 +688,17 @@ async function handle(request, ctx) {
       return json({
         notifications: normalizeNotificationPrefs(doc?.settings?.notifications),
         tour_completed: doc?.settings?.tour_completed === true,
+        theme: ['light', 'dark'].includes(doc?.settings?.theme) ? doc.settings.theme : null,
       });
     }
 
-    // Accepts any subset of: { notifications: {...}, tour_completed: boolean }
+    // Accepts any subset of: { notifications: {...}, tour_completed: boolean, theme: 'light' | 'dark' }
     if (path === '/settings' && method === 'PUT') {
       const body = await request.json().catch(() => ({}));
       const hasNotif = body && typeof body.notifications === 'object' && body.notifications !== null;
       const hasTour = body && typeof body.tour_completed === 'boolean';
-      if (!hasNotif && !hasTour) {
+      const hasTheme = body && ['light', 'dark'].includes(body.theme);
+      if (!hasNotif && !hasTour && !hasTheme) {
         return json({ error: 'Configurações inválidas' }, 400);
       }
       const set = { updated_at: new Date() };
@@ -708,6 +710,10 @@ async function handle(request, ctx) {
       if (hasTour) {
         out.tour_completed = body.tour_completed;
         set['settings.tour_completed'] = body.tour_completed;
+      }
+      if (hasTheme) {
+        out.theme = body.theme;
+        set['settings.theme'] = body.theme;
       }
       const db = await getDb();
       await db.collection(USERS).updateOne({ email: userEmail }, { $set: set });
