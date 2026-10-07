@@ -44,12 +44,23 @@ const sheetVariants = cva(
   }
 )
 
-const SheetContent = React.forwardRef(({ side = "right", className, children, ...props }, ref) => (
+// In the Android app the status bar overlays the top of the screen (the
+// app is edge-to-edge), so sheets that reach the top edge keep their content
+// below it: --safe-area-inset-top is the status bar height (0 on the web).
+const SheetContent = React.forwardRef(({ side = "right", className, children, style, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
-    <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
+    <SheetPrimitive.Content
+      ref={ref}
+      className={cn(sheetVariants({ side }), className)}
+      style={side === "bottom" ? style : { paddingTop: "var(--safe-area-inset-top, 0px)", ...style }}
+      {...props}>
       <SheetPrimitive.Close
-        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+        className={cn(
+          "absolute right-3 rounded-full p-1 opacity-70",
+          side === "bottom" ? "top-3" : "top-[calc(0.75rem+var(--safe-area-inset-top,0px))]",
+          "ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary"
+        )}>
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </SheetPrimitive.Close>

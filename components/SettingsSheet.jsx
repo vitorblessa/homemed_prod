@@ -97,7 +97,7 @@ export default function SettingsSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full !max-w-full sm:!max-w-md flex flex-col p-0">
-        <SheetHeader className="p-4 sm:p-6 pb-4 border-b pr-12 pt-[calc(1rem+var(--safe-area-inset-top,0px))] text-left space-y-1">
+        <SheetHeader className="p-4 sm:p-6 pb-4 border-b pr-12 text-left space-y-1">
           <SheetTitle className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shrink-0 shadow-md">
               <Settings className="h-5 w-5 text-white" />
