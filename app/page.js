@@ -804,6 +804,12 @@ function App() {
 
   useEffect(() => { if (user) loadAll() }, [loadAll, user])
 
+  // Forget the last-seen data when nobody is signed in. Without this, signing
+  // out and back into the same account fetched an identical list, matched the
+  // stale signature and skipped the update, leaving the screen empty until
+  // the app was force-closed.
+  useEffect(() => { if (!user) lastSigRef.current = null }, [user])
+
   // Keep the list in step with changes made elsewhere (the website, another
   // family member): refresh when the app comes back to the foreground and
   // every minute while it is open. Quiet and throttled.
