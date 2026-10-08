@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { normalizeNotificationPrefs } from '@/lib/notification-prefs';
+import { hit, clear, clientIp, tooManyMessage } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,16 @@ const COOKIE_NAME = 'homemed_session';
 const OAUTH_STATE_COOKIE = 'homemed_oauth_state';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+
+// Attempt limits on the unauthenticated routes (per client IP / per account).
+const MIN = 60 * 1000;
+const HOUR = 60 * MIN;
+
+function tooMany(retryAfterSec) {
+  const res = json({ error: tooManyMessage(retryAfterSec) }, 429);
+  res.headers.set('Retry-After', String(retryAfterSec));
+  return res;
+}
 
 // Password reset
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // link valid for 1 hour
@@ -168,6 +179,8 @@ async function handle(request, ctx) {
       if (!email || !email.includes('@')) return json({ error: 'Email inválido' }, 400);
       if (password.length < 6) return json({ error: 'Senha deve ter no mínimo 6 caracteres' }, 400);
       const db = await getDb();
+      const rl = await hit(db, `register:ip:${clientIp(request)}`, 10, HOUR);
+      if (!rl.allowed) return tooMany(rl.retryAfterSec);
       const existing = await db.collection(USERS).findOne({ email });
       if (existing && existing.password_hash) {
         return json({ error: 'Este email já está registrado. Faça login.' }, 409);
@@ -207,12 +220,20 @@ async function handle(request, ctx) {
       const password = (body?.password || '').toString();
       if (!email || !password) return json({ error: 'Email e senha obrigatórios' }, 400);
       const db = await getDb();
+      // 8 attempts per account and 30 per IP, every 15 minutes (a correct
+      // login clears the account counter).
+      const accountKey = `login:email:${email}`;
+      const rlIp = await hit(db, `login:ip:${clientIp(request)}`, 30, 15 * MIN);
+      if (!rlIp.allowed) return tooMany(rlIp.retryAfterSec);
+      const rlAcc = await hit(db, accountKey, 8, 15 * MIN);
+      if (!rlAcc.allowed) return tooMany(rlAcc.retryAfterSec);
       const user = await db.collection(USERS).findOne({ email });
       if (!user || !user.password_hash) {
         return json({ error: 'Email ou senha inválidos' }, 401);
       }
       const ok = await bcrypt.compare(password, user.password_hash);
       if (!ok) return json({ error: 'Email ou senha inválidos' }, 401);
+      await clear(db, accountKey, 15 * MIN);
       // Reactivate on login
       if (user.deactivated) {
         await db.collection(USERS).updateOne({ email: user.email }, { $set: { deactivated: false }, $unset: { deactivated_at: '' } });
@@ -240,6 +261,12 @@ async function handle(request, ctx) {
       const generic = { ok: true, message: 'Se existir uma conta com este e-mail, enviamos um link para redefinir a senha.' };
       if (!email || !email.includes('@')) return json({ error: 'Informe um e-mail válido' }, 400);
       const db = await getDb();
+      // 5 requests per IP per hour; per account only 3 per hour, answered with
+      // the generic message so it can't reveal whether the account exists.
+      const rlIp = await hit(db, `forgot:ip:${clientIp(request)}`, 5, HOUR);
+      if (!rlIp.allowed) return tooMany(rlIp.retryAfterSec);
+      const rlAcc = await hit(db, `forgot:email:${email}`, 3, HOUR);
+      if (!rlAcc.allowed) return json(generic);
       const user = await db.collection(USERS).findOne({ email });
       if (!user) return json(generic);
       const last = user.reset_requested_at ? new Date(user.reset_requested_at).getTime() : 0;
@@ -270,6 +297,8 @@ async function handle(request, ctx) {
       if (!token) return json({ error: 'Link inválido ou expirado' }, 400);
       if (password.length < 6) return json({ error: 'Senha deve ter no mínimo 6 caracteres' }, 400);
       const db = await getDb();
+      const rl = await hit(db, `reset:ip:${clientIp(request)}`, 10, HOUR);
+      if (!rl.allowed) return tooMany(rl.retryAfterSec);
       const password_hash = await bcrypt.hash(password, 10);
       const user = await db.collection(USERS).findOneAndUpdate(
         { reset_token_hash: hashResetToken(token), reset_expires_at: { $gt: new Date() } },
@@ -444,6 +473,10 @@ async function handle(request, ctx) {
       const idToken = body?.id_token;
       if (!idToken || typeof idToken !== 'string') {
         return json({ error: 'id_token obrigatório' }, 400);
+      }
+      {
+        const rl = await hit(await getDb(), `gtoken:ip:${clientIp(request)}`, 30, 15 * MIN);
+        if (!rl.allowed) return tooMany(rl.retryAfterSec);
       }
 
       let payload;
