@@ -2535,7 +2535,6 @@ function AccountDialog({ open, onOpenChange, user, onGone }) {
                 <li>Todo o histórico será apagado</li>
                 <li>Se você é dono de uma família, ela será deletada ou passará para outro membro</li>
                 <li>Você será removido de qualquer família compartilhada</li>
-                <li>Assinaturas de notificação push serão removidas</li>
                 <li><b>Não pode ser desfeito.</b> Para começar de novo, terá que cadastrar tudo.</li>
               </ul>
             </div>

@@ -16,7 +16,6 @@ const HIST = 'history';
 const USERS = 'users';
 const SESSIONS = 'sessions';
 const FAMILIES = 'families';
-const PUSH_SUBS = 'push_subscriptions';
 const COOKIE_NAME = 'homemed_session';
 const OAUTH_STATE_COOKIE = 'homemed_oauth_state';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -596,7 +595,6 @@ async function handle(request, ctx) {
       }
       await db.collection(COL).deleteMany({ user_email: u.email });
       await db.collection(HIST).deleteMany({ user_email: u.email });
-      await db.collection(PUSH_SUBS).deleteMany({ user_email: u.email });
       await db.collection(SESSIONS).deleteMany({ email: u.email });
       await db.collection(USERS).deleteOne({ email: u.email });
       return json({ ok: true, message: 'Conta excluída permanentemente.' }, 200, { clearCookie: true });
@@ -754,30 +752,6 @@ async function handle(request, ctx) {
       const db = await getDb();
       await db.collection(USERS).updateOne({ email: userEmail }, { $set: set });
       return json(out);
-    }
-
-    // ============ PUSH SUBSCRIPTIONS ============
-    if (path === '/push/subscribe' && method === 'POST') {
-      const body = await request.json();
-      const subscription = body?.subscription;
-      if (!subscription?.endpoint) return json({ error: 'subscription obrigatório' }, 400);
-      const db = await getDb();
-      await db.collection(PUSH_SUBS).updateOne(
-        { endpoint: subscription.endpoint },
-        { $set: { endpoint: subscription.endpoint, subscription, user_email: userEmail, updated_at: new Date() } },
-        { upsert: true }
-      );
-      return json({ ok: true });
-    }
-
-    if (path === '/push/unsubscribe' && method === 'POST') {
-      const body = await request.json();
-      const endpoint = body?.endpoint;
-      if (endpoint) {
-        const db = await getDb();
-        await db.collection(PUSH_SUBS).deleteOne({ endpoint });
-      }
-      return json({ ok: true });
     }
 
     // AI enrichment (no persistence)

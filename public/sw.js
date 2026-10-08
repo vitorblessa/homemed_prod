@@ -1,5 +1,6 @@
-// HomeMed Service Worker — handles push notifications & scheduled reminders
-const CACHE_VERSION = 'homemed-v1'
+// HomeMed Service Worker — lets the site be installed and focuses the app when
+// a reminder shown by the browser is tapped. (No server push: reminders are
+// scheduled on the device.)
 
 self.addEventListener('install', (event) => {
   self.skipWaiting()
@@ -7,27 +8,6 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
-})
-
-// Handle push events from server (future-proofing for web push)
-self.addEventListener('push', (event) => {
-  let data = {}
-  try {
-    data = event.data ? event.data.json() : {}
-  } catch (e) {
-    data = { title: 'HomeMed', body: event.data ? event.data.text() : '' }
-  }
-  const title = data.title || 'HomeMed'
-  const options = {
-    body: data.body || '',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    tag: data.tag || 'homemed',
-    data: data.data || {},
-    requireInteraction: false,
-    vibrate: [200, 100, 200],
-  }
-  event.waitUntil(self.registration.showNotification(title, options))
 })
 
 // When user clicks a notification, focus/open the app

@@ -70,7 +70,7 @@ export default function PrivacyPage() {
 
         <section>
           <h2 className="font-semibold text-xl mt-4">7. Retenção e exclusão</h2>
-          <p className="text-sm">Ao excluir sua conta, apagamos: seus medicamentos, histórico, preferências, assinaturas push e sessões. Dados compartilhados em família continuam com os demais membros; se você era o único membro, a família é removida.</p>
+          <p className="text-sm">Ao excluir sua conta, apagamos: seus medicamentos, histórico, preferências e sessões. Dados compartilhados em família continuam com os demais membros; se você era o único membro, a família é removida.</p>
         </section>
 
         <section>
