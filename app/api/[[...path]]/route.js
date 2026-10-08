@@ -776,7 +776,7 @@ async function handle(request, ctx) {
           return json({ error: 'Foto muito grande. Tente de novo com uma foto menor.' }, 413);
         }
         // Cada leitura de foto custa uma chamada de IA: limite por conta.
-        const rl = await hit(await getDb(), `photo:${userEmail}`, 40, HOUR);
+        const rl = await hit(await getDb(), `photo:${userEmail}`, 20, HOUR);
         if (!rl.allowed) {
           const res = json({ error: 'Muitas fotos em pouco tempo. Tente de novo mais tarde ou cadastre pelo nome.' }, 429);
           res.headers.set('Retry-After', String(rl.retryAfterSec));
