@@ -771,6 +771,18 @@ async function handle(request, ctx) {
       const barcode = (body?.barcode || '').toString().trim();
       const image_base64 = body?.image_base64;
       if (!barcode && !image_base64) return json({ error: 'barcode ou image_base64 obrigatório' }, 400);
+      if (image_base64) {
+        if (typeof image_base64 !== 'string' || image_base64.length > 3_500_000) {
+          return json({ error: 'Foto muito grande. Tente de novo com uma foto menor.' }, 413);
+        }
+        // Cada leitura de foto custa uma chamada de IA: limite por conta.
+        const rl = await hit(await getDb(), `photo:${userEmail}`, 40, HOUR);
+        if (!rl.allowed) {
+          const res = json({ error: 'Muitas fotos em pouco tempo. Tente de novo mais tarde ou cadastre pelo nome.' }, 429);
+          res.headers.set('Retry-After', String(rl.retryAfterSec));
+          return res;
+        }
+      }
       const result = await enrichFromBarcodeAndImage({ barcode, image_base64 });
       return json(result);
     }

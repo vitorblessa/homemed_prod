@@ -41,7 +41,7 @@ import {
   Trash2, Edit2, MapPin, FlaskConical, Moon, Sun, Loader2, MessageCircle, X,
   ChevronRight, ChevronLeft, Check, ShieldAlert, Info, Send, TrendingDown, Archive,
   ScanLine, Download, FileText, FileSpreadsheet, File, Barcode, LogOut, Bell,
-  Users, Copy, UserPlus, UserMinus, RefreshCw, Settings, Smartphone, Globe,
+  Users, Copy, UserPlus, UserMinus, RefreshCw, Settings, Smartphone, Globe, Camera,
 } from 'lucide-react'
 import BarcodeScanner from '@/components/barcode-scanner'
 import SettingsSheet from '@/components/SettingsSheet'
@@ -1617,6 +1617,55 @@ function App() {
   )
 }
 
+// Reduces a phone photo (often 4000px+, several MB) to a JPEG the API accepts
+// and the AI can still read. Returns a data URL.
+async function shrinkPhoto(file, maxSide = 1600, quality = 0.82) {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image()
+      i.onload = () => resolve(i)
+      i.onerror = () => reject(new Error('Não consegui abrir a foto.'))
+      i.src = url
+    })
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale))
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale))
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/jpeg', quality)
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+const VALID_ISO = /^\d{4}-\d{2}-\d{2}$/
+
+// Turns the AI's photo reading into a form object (see emptyForm).
+function formFromPhoto(d, barcode) {
+  return {
+    ...emptyForm(d.nome_comercial || ''),
+    nome_generico: d.nome_generico || '',
+    principio_ativo: d.principio_ativo || '',
+    laboratorio: d.laboratorio || d.laboratorio_comum || '',
+    concentracao: d.concentracao || '',
+    forma_farmaceutica: d.forma_farmaceutica || 'Comprimido',
+    categoria: d.categoria || 'Outros',
+    classe_terapeutica: d.classe_terapeutica || '',
+    para_que_serve: d.para_que_serve || '',
+    indicacoes: d.indicacoes || [],
+    contraindicacoes: d.contraindicacoes || [],
+    efeitos_colaterais: d.efeitos_colaterais || [],
+    precisa_receita: !!d.precisa_receita,
+    uso_continuo: !!d.uso_continuo_comum,
+    modo_armazenamento: d.modo_armazenamento || '',
+    lote: d.lote || '',
+    data_fabricacao: VALID_ISO.test(d.data_fabricacao || '') ? d.data_fabricacao : '',
+    data_validade: VALID_ISO.test(d.data_validade || '') ? d.data_validade : '',
+    codigo_barras: barcode || d.codigo_barras || '',
+  }
+}
+
 /* ============ ADD MEDICINE DIALOG ============ */
 function AddMedicineDialog({ open, onOpenChange, onSaved, editMed, onOpenExisting }) {
   const isEdit = !!editMed
@@ -1626,6 +1675,9 @@ function AddMedicineDialog({ open, onOpenChange, onSaved, editMed, onOpenExistin
   const [form, setForm] = useState(isEdit ? { ...emptyForm(''), ...editMed } : null)
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scannedCode, setScannedCode] = useState(isEdit ? (editMed.codigo_barras || '') : '')
+  const [readingPhoto, setReadingPhoto] = useState(false)
+  const photoInputRef = useRef(null)
+  const photoMode = useRef('new') // 'new' = start a registration, 'fill' = complete the open form
 
   // Registered after the dialog's own listener (page mounts this component
   // only while `open` is true), so while the scanner is open it sits on
@@ -1638,6 +1690,57 @@ function AddMedicineDialog({ open, onOpenChange, onSaved, editMed, onOpenExistin
     toast.success(`Código lido: ${code}`)
     if (form) {
       setForm(f => ({ ...f, codigo_barras: code }))
+    }
+  }
+
+  const openPhotoPicker = (mode) => {
+    photoMode.current = mode
+    photoInputRef.current?.click()
+  }
+
+  const handlePhoto = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setReadingPhoto(true)
+    try {
+      const image_base64 = await shrinkPhoto(file)
+      const res = await fetch('/api/ai/enrich-barcode', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode: scannedCode || '', image_base64 }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Não consegui ler a foto.')
+      if (data.reconhecido === false) {
+        toast.error('Não consegui reconhecer o remédio nessa foto. Tente de novo com a caixa bem iluminada, ou digite o nome.')
+        return
+      }
+      const fromPhoto = formFromPhoto(data, scannedCode)
+      if (photoMode.current === 'fill' && form) {
+        // Only complete what is still empty; never overwrite what the user typed.
+        const got = []
+        setForm(f => {
+          const next = { ...f }
+          for (const k of ['lote', 'data_fabricacao', 'data_validade']) {
+            if (!f[k] && fromPhoto[k]) { next[k] = fromPhoto[k]; got.push(k) }
+          }
+          return next
+        })
+        toast.success(fromPhoto.data_validade || fromPhoto.lote || fromPhoto.data_fabricacao
+          ? 'Li os dados da foto. Confira antes de salvar.'
+          : 'Não encontrei validade nem lote nessa foto. Preencha à mão ou tente outra foto.')
+      } else {
+        setForm(fromPhoto)
+        toast.success(fromPhoto.data_validade
+          ? 'Li a caixa! Confira os dados e salve.'
+          : 'Reconheci o remédio, mas não li a validade. Digite a data ou tire uma foto da lateral/base da caixa.')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Não consegui ler a foto.')
+    } finally {
+      setReadingPhoto(false)
     }
   }
 
@@ -1776,6 +1879,18 @@ function AddMedicineDialog({ open, onOpenChange, onSaved, editMed, onOpenExistin
               )}
             </div>
 
+            <Button
+              onClick={() => openPhotoPicker('new')}
+              disabled={readingPhoto}
+              className="w-full h-12 gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+            >
+              {readingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              {readingPhoto ? 'Lendo a caixa...' : 'Fotografar a caixa'}
+            </Button>
+            <p className="-mt-2 text-xs text-muted-foreground text-center">
+              A IA lê nome, validade e lote direto da embalagem. Mostre bem a parte com a validade.
+            </p>
+
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
@@ -1796,8 +1911,31 @@ function AddMedicineDialog({ open, onOpenChange, onSaved, editMed, onOpenExistin
             </div>
           </div>
         ) : (
-          <MedicineForm form={form} setForm={setForm} onScan={() => setScannerOpen(true)} />
+          <div className="space-y-3">
+            {(!form.data_validade || !form.lote) && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => openPhotoPicker('fill')}
+                disabled={readingPhoto}
+                className="w-full h-11 gap-2 border-dashed"
+              >
+                {readingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                {readingPhoto ? 'Lendo a foto...' : 'Ler validade e lote por foto'}
+              </Button>
+            )}
+            <MedicineForm form={form} setForm={setForm} onScan={() => setScannerOpen(true)} />
+          </div>
         )}
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handlePhoto}
+          data-testid="box-photo-input"
+        />
 
         <DialogFooter className="gap-2 flex-col-reverse sm:flex-row">
           {form && (
