@@ -7,7 +7,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'lh3.googleusercontent.com', pathname: '/**' },
     ],
   },
-  serverExternalPackages: ['mongodb'],
+  serverExternalPackages: ['mongodb', '@sentry/node'],
   webpack(config, { dev }) {
     if (dev) {
       config.watchOptions = {

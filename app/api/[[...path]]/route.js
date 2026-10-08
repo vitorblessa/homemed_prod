@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { normalizeNotificationPrefs } from '@/lib/notification-prefs';
 import { hit, clear, clientIp, tooManyMessage } from '@/lib/rate-limit';
+import { reportError } from '@/lib/monitoring';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -451,6 +452,7 @@ async function handle(request, ctx) {
         console.error(`Google OAuth session/db step threw at step=${step}`, {
           name: e?.name, message: e?.message, stack: e?.stack, raw: String(e),
         });
+        await reportError(e, { route: path, method, step });
         return failRedirect(`Erro ao salvar sua sessão (${step})`);
       }
     }
@@ -534,6 +536,7 @@ async function handle(request, ctx) {
         console.error(`Google native login session/db step threw at step=${step}`, {
           name: e?.name, message: e?.message, stack: e?.stack, raw: String(e),
         });
+        await reportError(e, { route: path, method, step });
         return json({ error: `Erro ao salvar sua sessão (${step})` }, 500);
       }
     }
@@ -956,6 +959,7 @@ async function handle(request, ctx) {
     return json({ error: 'rota não encontrada', path, method }, 404);
   } catch (e) {
     console.error('API error', e);
+    await reportError(e, { route: path, method });
     return json({ error: e.message || 'erro interno' }, 500);
   }
 }

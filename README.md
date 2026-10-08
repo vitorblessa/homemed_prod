@@ -92,6 +92,7 @@ Copie `.env.example` para `.env` e preencha:
 |---|:---:|---|
 | `MONGO_URL` | Sim | Connection string do MongoDB Atlas (Connect → Drivers → Node.js) |
 | `DB_NAME` | Sim | Nome do banco (padrão: `homemed`) |
+| `SENTRY_DSN` | Não | Endereço do projeto no Sentry para registrar erros do servidor (sem dados pessoais) |
 | `GEMINI_API_KEY` | Sim | Chave da API do [Google AI Studio](https://aistudio.google.com/apikey) |
 | `GOOGLE_CLIENT_ID` | Para login Google | ID do cliente OAuth do Google |
 | `GOOGLE_CLIENT_SECRET` | Para login Google | Chave secreta do mesmo cliente OAuth |
