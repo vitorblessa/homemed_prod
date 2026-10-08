@@ -55,6 +55,7 @@ async function sendPasswordResetEmail(to, name, link) {
     return false;
   }
   const from = process.env.EMAIL_FROM || 'HomeMed <nao-responda@homemed.tech>';
+  const senderEmail = escapeHtml((from.match(/<([^>]+)>/) || [])[1] || from);
   const greeting = name ? `Olá, ${escapeHtml(name)}!` : 'Olá!';
   const html = `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
@@ -66,6 +67,7 @@ async function sendPasswordResetEmail(to, name, link) {
       </p>
       <p style="font-size:13px;color:#475569">Se o botão não funcionar, copie e cole este endereço no navegador:<br><span style="word-break:break-all">${link}</span></p>
       <p style="font-size:13px;color:#475569">Se você não pediu isso, pode ignorar este e-mail: sua senha continua a mesma.</p>
+      <p style="font-size:13px;color:#475569;border-top:1px solid #e2e8f0;padding-top:12px;margin-top:20px"><strong>Dica:</strong> adicione <strong>${senderEmail}</strong> aos seus contatos. Assim os próximos e-mails do HomeMed chegam na caixa de entrada, e não no lixo eletrônico.</p>
     </div>`;
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -78,7 +80,7 @@ async function sendPasswordResetEmail(to, name, link) {
         reply_to: process.env.EMAIL_REPLY_TO || 'suporte@homemed.tech',
         subject: 'Redefinir sua senha do HomeMed',
         html,
-        text: `Para redefinir sua senha do HomeMed, abra este link (válido por 1 hora): ${link}\n\nSe você não pediu isso, ignore este e-mail.`,
+        text: `Para redefinir sua senha do HomeMed, abra este link (válido por 1 hora): ${link}\n\nSe você não pediu isso, ignore este e-mail.\n\nDica: adicione ${(from.match(/<([^>]+)>/) || [])[1] || from} aos seus contatos para os próximos e-mails do HomeMed chegarem na caixa de entrada, e não no lixo eletrônico.`,
       }),
     });
     if (!res.ok) {
