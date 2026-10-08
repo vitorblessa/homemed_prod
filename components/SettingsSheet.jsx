@@ -211,6 +211,27 @@ export default function SettingsSheet({
             )}
           </section>
 
+          {/* ───────── Low stock ───────── */}
+          <section className="rounded-2xl border bg-card p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <IconTile className="bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
+                <AlertTriangle className="h-5 w-5" />
+              </IconTile>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold leading-tight">Aviso de estoque baixo</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Avisa, no mesmo horário dos lembretes ({pad(prefs.hour)}:00), quando um remédio chegar na quantidade mínima.
+                </p>
+              </div>
+              <Switch
+                checked={!!prefs.low_stock}
+                onCheckedChange={(v) => onChange({ low_stock: v })}
+                aria-label="Ativar aviso de estoque baixo"
+                className="mt-1"
+              />
+            </div>
+          </section>
+
           {/* ───────── Sync ───────── */}
           <section className="rounded-2xl border bg-card p-4 space-y-3 shadow-sm">
             <div className="flex items-start gap-3">

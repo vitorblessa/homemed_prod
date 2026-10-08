@@ -995,6 +995,10 @@ function App() {
         setSearch('')
         setFilterCat('all')
         setStatusFilter('expiring')
+      } else if (extra?.type === 'low_stock') {
+        setSearch('')
+        setFilterCat('all')
+        setStatusFilter('low_stock')
       }
     })
   }, [user])
