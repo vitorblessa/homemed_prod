@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import { normalizeNotificationPrefs } from '@/lib/notification-prefs';
 import { hit, clear, clientIp, tooManyMessage } from '@/lib/rate-limit';
 import { reportError } from '@/lib/monitoring';
+import { normalizeDoseTimes, isValidTime } from '@/lib/doses';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -896,6 +897,7 @@ async function handle(request, ctx) {
         local: body.local || '',
         observacoes: body.observacoes || '',
         codigo_barras: body.codigo_barras || '',
+        dose_times: normalizeDoseTimes(body.dose_times),
         created_at: now,
         updated_at: now,
       };
@@ -910,6 +912,47 @@ async function handle(request, ctx) {
         created_at: now,
       });
       return json({ ...doc, ...computeStatus(doc) });
+    }
+
+    // Doses already marked as taken on a given day (YYYY-MM-DD, the user's local date)
+    if (path === '/doses' && method === 'GET') {
+      const date = new URL(request.url).searchParams.get('date') || '';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: 'date inválida' }, 400);
+      const db = await getDb();
+      const ids = (await db.collection(COL).find(scopeFilter(user)).project({ id: 1 }).toArray()).map(m => m.id);
+      const logs = ids.length
+        ? await db.collection(HIST).find({ medicine_id: { $in: ids }, action: 'dose_taken', dose_date: date }).toArray()
+        : [];
+      return json({ taken: logs.map(l => ({ medicine_id: l.medicine_id, time: l.dose_time })) });
+    }
+
+    // "Tomei": records the dose and takes one unit out of the stock
+    if (segs[0] === 'medicines' && segs.length === 3 && segs[2] === 'take' && method === 'POST') {
+      const id = segs[1];
+      const body = await request.json().catch(() => ({}));
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(body?.date || '') ? body.date : null;
+      const time = isValidTime(body?.time) ? body.time : null;
+      if (!date || !time) return json({ error: 'date e time obrigatórios' }, 400);
+      const db = await getDb();
+      const m = await db.collection(COL).findOne({ id, ...scopeFilter(user) });
+      if (!m) return json({ error: 'não encontrado' }, 404);
+      const already = await db.collection(HIST).findOne({ medicine_id: id, action: 'dose_taken', dose_date: date, dose_time: time });
+      if (already) return json({ ok: true, already: true, quantidade: m.quantidade });
+      const now = new Date().toISOString();
+      const current = Number(m.quantidade) || 0;
+      const quantidade = Math.max(0, current - 1);
+      await db.collection(HIST).insertOne({
+        id: uuidv4(),
+        user_email: userEmail,
+        medicine_id: id,
+        action: 'dose_taken',
+        dose_date: date,
+        dose_time: time,
+        details: `Dose das ${time} tomada${current > 0 ? ` (estoque ${current} → ${quantidade})` : ''}`,
+        created_at: now,
+      });
+      if (current > 0) await db.collection(COL).updateOne({ id, ...scopeFilter(user) }, { $set: { quantidade, updated_at: now } });
+      return json({ ok: true, quantidade });
     }
 
     // Single medicine ops (user-scoped)
@@ -930,6 +973,7 @@ async function handle(request, ctx) {
         delete updates._id;
         delete updates.id;
         delete updates.user_email;
+        if ('dose_times' in updates) updates.dose_times = normalizeDoseTimes(updates.dose_times);
         await db.collection(COL).updateOne({ id, ...scopeFilter(user) }, { $set: updates });
         if (body.quantidade != null && Number(body.quantidade) !== Number(existing.quantidade)) {
           const diff = Number(body.quantidade) - Number(existing.quantidade);
