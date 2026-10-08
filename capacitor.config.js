@@ -1,4 +1,4 @@
-// Capacitor config for HomeMed Android app
+// Capacitor config for HomeMed AI Android app
 // Android loads the deployed web app; native shell only provides camera/notif permissions.
 
 const SERVER_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.homemed.tech'
@@ -12,7 +12,7 @@ const SERVER_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.homemed.tech
 /** @type {import('@capacitor/cli').CapacitorConfig} */
 const config = {
   appId: 'com.blessahome.homemed',
-  appName: 'HomeMed',
+  appName: 'HomeMed AI',
   webDir: 'out',
   server: {
     // Load the live PWA. This keeps auth, cookies and API base URL working exactly like the web.

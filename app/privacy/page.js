@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Política de Privacidade — HomeMed',
-  description: 'Como o HomeMed usa e protege seus dados.',
+  title: 'Política de Privacidade — HomeMed AI',
+  description: 'Como o HomeMed AI usa e protege seus dados.',
 }
 
 export default function PrivacyPage() {
@@ -9,11 +9,11 @@ export default function PrivacyPage() {
       <div className="max-w-3xl mx-auto bg-white dark:bg-slate-900 rounded-xl shadow-sm border p-6 sm:p-10 space-y-5 text-slate-800 dark:text-slate-200">
         <header>
           <h1 className="text-3xl font-bold">Política de Privacidade</h1>
-          <p className="text-sm text-muted-foreground mt-1">HomeMed — vigência: junho de 2025</p>
+          <p className="text-sm text-muted-foreground mt-1">HomeMed AI — vigência: junho de 2025</p>
         </header>
 
         <section>
-          <p>O HomeMed é uma ferramenta de organização pessoal e familiar de medicamentos. Ele <b>não realiza diagnósticos, prescrições ou tratamentos médicos</b> e não substitui a orientação de um profissional de saúde.</p>
+          <p>O HomeMed AI é uma ferramenta de organização pessoal e familiar de medicamentos. Ele <b>não realiza diagnósticos, prescrições ou tratamentos médicos</b> e não substitui a orientação de um profissional de saúde.</p>
         </section>
 
         <section>
@@ -79,7 +79,7 @@ export default function PrivacyPage() {
         </section>
 
         <footer className="pt-4 border-t text-xs text-muted-foreground">
-          <a href="/" className="text-blue-600 underline">Voltar ao HomeMed</a> · <a href="/terms" className="text-blue-600 underline">Termos de Uso</a> · <a href="/delete-account" className="text-blue-600 underline">Excluir conta</a>
+          <a href="/" className="text-blue-600 underline">Voltar ao HomeMed AI</a> · <a href="/terms" className="text-blue-600 underline">Termos de Uso</a> · <a href="/delete-account" className="text-blue-600 underline">Excluir conta</a>
         </footer>
       </div>
     </div>

@@ -253,7 +253,7 @@ function MedicineCard({ m, onClick }) {
 /* ============ PUBLIC LANDING (no login required) ============
    Google Play's pre-launch report flags apps whose home screen requires
    sign-in before showing anything. This screen is what unauthenticated
-   visitors see: information about what HomeMed does, with clear buttons
+   visitors see: information about what HomeMed AI does, with clear buttons
    to create an account or log in — never a forced auth wall. */
 const LANDING_FEATURES = [
   { icon: Sparkles, title: 'Cadastro com IA', text: 'Digite o nome do remédio ou escaneie a caixa e a IA preenche princípio ativo, para que serve, contraindicações e mais.' },
@@ -274,7 +274,7 @@ function LandingScreen({ onGetStarted }) {
             <Pill className="h-8 w-8 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">HomeMed</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">HomeMed AI</h1>
             <p className="text-base text-muted-foreground mt-2 max-w-md mx-auto">
               A farmácia da sua casa, organizada. Controle validade, estoque e localização
               dos medicamentos da família com ajuda de inteligência artificial.
@@ -437,7 +437,7 @@ function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, resetToken
               <Pill className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">HomeMed</h1>
+              <h1 className="text-2xl font-bold">HomeMed AI</h1>
               <p className="text-sm text-muted-foreground mt-1">Sua farmácia doméstica inteligente</p>
             </div>
           </div>
@@ -561,13 +561,13 @@ function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, resetToken
                       nao-responda@homemed.tech
                     </p>
                     <p>
-                      com o assunto <strong>"Redefinir sua senha do HomeMed"</strong>. Então:
+                      com o assunto <strong>"Redefinir sua senha do HomeMed AI"</strong>. Então:
                     </p>
                     <ol className="list-decimal pl-5 space-y-1">
                       <li>Abra o e-mail e marque como <strong>"Não é spam"</strong> (ou mova para a caixa de entrada).</li>
                       <li>
                         Adicione esse endereço aos seus contatos ou marque-o como <strong>remetente confiável</strong>, para os próximos
-                        e-mails do HomeMed chegarem direto na caixa de entrada.
+                        e-mails do HomeMed AI chegarem direto na caixa de entrada.
                       </li>
                       <li>Toque no botão <strong>"Redefinir minha senha"</strong> dentro do e-mail.</li>
                     </ol>
@@ -1202,7 +1202,7 @@ function App() {
               <Pill className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0">
-              <h1 className="font-bold text-lg tracking-tight leading-none">HomeMed</h1>
+              <h1 className="font-bold text-lg tracking-tight leading-none">HomeMed AI</h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">{user.name || user.email}</p>
             </div>
           </div>
@@ -2900,7 +2900,7 @@ function ChatText({ text }) {
 
 function AIAssistantSheet({ open, onOpenChange }) {
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Olá! Sou seu assistente HomeMed. Pergunte coisas como: "Tenho algum antialérgico em casa?" ou "Qual remédio tenho para dor de cabeça?"' }
+    { role: 'assistant', text: 'Olá! Sou seu assistente HomeMed AI. Pergunte coisas como: "Tenho algum antialérgico em casa?" ou "Qual remédio tenho para dor de cabeça?"' }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -2943,7 +2943,7 @@ function AIAssistantSheet({ open, onOpenChange }) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shrink-0">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="truncate">Assistente HomeMed</span>
+            <span className="truncate">Assistente HomeMed AI</span>
           </SheetTitle>
         </SheetHeader>
 

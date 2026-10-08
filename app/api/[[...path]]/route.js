@@ -55,12 +55,12 @@ async function sendPasswordResetEmail(to, name, link) {
     console.warn('[password-reset] RESEND_API_KEY not set; email not sent');
     return false;
   }
-  const from = process.env.EMAIL_FROM || 'HomeMed <nao-responda@homemed.tech>';
+  const from = process.env.EMAIL_FROM || 'HomeMed AI <nao-responda@homemed.tech>';
   const senderEmail = escapeHtml((from.match(/<([^>]+)>/) || [])[1] || from);
   const greeting = name ? `Olá, ${escapeHtml(name)}!` : 'Olá!';
   const html = `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
-      <h2 style="margin:0 0 16px">HomeMed</h2>
+      <h2 style="margin:0 0 16px">HomeMed AI</h2>
       <p>${greeting}</p>
       <p>Recebemos um pedido para redefinir a senha da sua conta. Clique no botão abaixo para criar uma nova senha. O link vale por 1 hora.</p>
       <p style="margin:24px 0">
@@ -68,7 +68,7 @@ async function sendPasswordResetEmail(to, name, link) {
       </p>
       <p style="font-size:13px;color:#475569">Se o botão não funcionar, copie e cole este endereço no navegador:<br><span style="word-break:break-all">${link}</span></p>
       <p style="font-size:13px;color:#475569">Se você não pediu isso, pode ignorar este e-mail: sua senha continua a mesma.</p>
-      <p style="font-size:13px;color:#475569;border-top:1px solid #e2e8f0;padding-top:12px;margin-top:20px"><strong>Dica:</strong> adicione <strong>${senderEmail}</strong> aos seus contatos. Assim os próximos e-mails do HomeMed chegam na caixa de entrada, e não no lixo eletrônico.</p>
+      <p style="font-size:13px;color:#475569;border-top:1px solid #e2e8f0;padding-top:12px;margin-top:20px"><strong>Dica:</strong> adicione <strong>${senderEmail}</strong> aos seus contatos. Assim os próximos e-mails do HomeMed AI chegam na caixa de entrada, e não no lixo eletrônico.</p>
     </div>`;
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -79,9 +79,9 @@ async function sendPasswordResetEmail(to, name, link) {
         to,
         // Replies to the automated email land in the support inbox.
         reply_to: process.env.EMAIL_REPLY_TO || 'suporte@homemed.tech',
-        subject: 'Redefinir sua senha do HomeMed',
+        subject: 'Redefinir sua senha do HomeMed AI',
         html,
-        text: `Para redefinir sua senha do HomeMed, abra este link (válido por 1 hora): ${link}\n\nSe você não pediu isso, ignore este e-mail.\n\nDica: adicione ${(from.match(/<([^>]+)>/) || [])[1] || from} aos seus contatos para os próximos e-mails do HomeMed chegarem na caixa de entrada, e não no lixo eletrônico.`,
+        text: `Para redefinir sua senha do HomeMed AI, abra este link (válido por 1 hora): ${link}\n\nSe você não pediu isso, ignore este e-mail.\n\nDica: adicione ${(from.match(/<([^>]+)>/) || [])[1] || from} aos seus contatos para os próximos e-mails do HomeMed AI chegarem na caixa de entrada, e não no lixo eletrônico.`,
       }),
     });
     if (!res.ok) {

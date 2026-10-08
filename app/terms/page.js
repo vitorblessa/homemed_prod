@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Termos de Uso — HomeMed',
-  description: 'Termos e condições de uso do HomeMed.',
+  title: 'Termos de Uso — HomeMed AI',
+  description: 'Termos e condições de uso do HomeMed AI.',
 }
 
 export default function TermsPage() {
@@ -9,17 +9,17 @@ export default function TermsPage() {
       <div className="max-w-3xl mx-auto bg-white dark:bg-slate-900 rounded-xl shadow-sm border p-6 sm:p-10 space-y-5 text-slate-800 dark:text-slate-200">
         <header>
           <h1 className="text-3xl font-bold">Termos de Uso</h1>
-          <p className="text-sm text-muted-foreground mt-1">HomeMed — vigência: junho de 2025</p>
+          <p className="text-sm text-muted-foreground mt-1">HomeMed AI — vigência: junho de 2025</p>
         </header>
 
         <section>
           <h2 className="font-semibold text-xl">1. Aceitação</h2>
-          <p className="text-sm">Ao criar uma conta ou usar o HomeMed você concorda com estes Termos e com a nossa <a href="/privacy" className="text-blue-600 underline">Política de Privacidade</a>.</p>
+          <p className="text-sm">Ao criar uma conta ou usar o HomeMed AI você concorda com estes Termos e com a nossa <a href="/privacy" className="text-blue-600 underline">Política de Privacidade</a>.</p>
         </section>
 
         <section>
           <h2 className="font-semibold text-xl">2. Natureza do serviço</h2>
-          <p className="text-sm">O HomeMed é uma <b>ferramenta de organização de farmácia doméstica</b>. Ele armazena informações que você cadastra sobre medicamentos, alerta sobre validades/estoques e oferece consulta em linguagem natural.</p>
+          <p className="text-sm">O HomeMed AI é uma <b>ferramenta de organização de farmácia doméstica</b>. Ele armazena informações que você cadastra sobre medicamentos, alerta sobre validades/estoques e oferece consulta em linguagem natural.</p>
           <p className="text-sm mt-2"><b>Não é um serviço médico</b>: não realiza diagnósticos, não receita medicamentos e não substitui o atendimento por um profissional de saúde. Em caso de sintomas ou dúvidas clínicas, procure um médico ou farmacêutico.</p>
         </section>
 
@@ -59,7 +59,7 @@ export default function TermsPage() {
 
         <section>
           <h2 className="font-semibold text-xl">9. Limitação de responsabilidade</h2>
-          <p className="text-sm">O uso do HomeMed é por conta e risco do usuário. Não nos responsabilizamos por danos decorrentes do uso ou impossibilidade de uso, incluídos prejuízos indiretos, no limite permitido em lei.</p>
+          <p className="text-sm">O uso do HomeMed AI é por conta e risco do usuário. Não nos responsabilizamos por danos decorrentes do uso ou impossibilidade de uso, incluídos prejuízos indiretos, no limite permitido em lei.</p>
         </section>
 
         <section>
@@ -79,7 +79,7 @@ export default function TermsPage() {
         </section>
 
         <footer className="pt-4 border-t text-xs text-muted-foreground">
-          <a href="/" className="text-blue-600 underline">Voltar ao HomeMed</a> · <a href="/privacy" className="text-blue-600 underline">Privacidade</a> · <a href="/delete-account" className="text-blue-600 underline">Excluir conta</a>
+          <a href="/" className="text-blue-600 underline">Voltar ao HomeMed AI</a> · <a href="/privacy" className="text-blue-600 underline">Privacidade</a> · <a href="/delete-account" className="text-blue-600 underline">Excluir conta</a>
         </footer>
       </div>
     </div>

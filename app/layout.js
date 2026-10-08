@@ -2,7 +2,7 @@ import './globals.css'
 import { Providers } from './providers'
 
 export const metadata = {
-  title: 'HomeMed - Sua farmácia doméstica inteligente',
+  title: 'HomeMed AI - Sua farmácia doméstica inteligente',
   description: 'Controle os medicamentos da sua casa com inteligência artificial. Nunca mais perca uma validade.',
   manifest: '/manifest.json',
   icons: {
@@ -19,7 +19,7 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'HomeMed',
+    title: 'HomeMed AI',
   },
   verification: {
     google: 'HuXFW_UXbVh7ouqJhxMddLqIXHtwmFdVVUWCVojseb8',

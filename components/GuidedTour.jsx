@@ -11,7 +11,7 @@ export const TOUR_STEPS = [
   {
     id: 'welcome',
     emoji: '👋',
-    title: 'Bem-vindo ao HomeMed!',
+    title: 'Bem-vindo ao HomeMed AI!',
     text: 'Em menos de um minuto você conhece o essencial. Pode pular quando quiser.',
   },
   {

@@ -1,6 +1,6 @@
 {
-  "name": "HomeMed - Farmácia Doméstica",
-  "short_name": "HomeMed",
+  "name": "HomeMed AI - Farmácia Doméstica",
+  "short_name": "HomeMed AI",
   "description": "Controle inteligente dos medicamentos da sua casa",
   "start_url": "/",
   "display": "standalone",

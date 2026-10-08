@@ -45,7 +45,7 @@ function NotificationPreview({ title, body, hour }) {
       </div>
       <div className="min-w-0 text-sm">
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground leading-none mb-1">
-          <span className="font-medium">HomeMed</span>
+          <span className="font-medium">HomeMed AI</span>
           <span>•</span>
           <span>{pad(hour)}:00</span>
         </div>
@@ -104,7 +104,7 @@ export default function SettingsSheet({
             </div>
             <span className="truncate text-xl">Configurações</span>
           </SheetTitle>
-          <SheetDescription>Deixe o HomeMed do seu jeito.</SheetDescription>
+          <SheetDescription>Deixe o HomeMed AI do seu jeito.</SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-[calc(1.5rem+var(--safe-area-inset-bottom,0px))]">
@@ -292,7 +292,7 @@ export default function SettingsSheet({
                 <p className="font-medium">As notificações estão bloqueadas.</p>
                 <p>
                   {native
-                    ? 'No Android, abra Configurações → Apps → HomeMed → Notificações e ative-as. Depois volte aqui.'
+                    ? 'No Android, abra Configurações → Apps → HomeMed AI → Notificações e ative-as. Depois volte aqui.'
                     : 'Libere as notificações para este site nas configurações do navegador e volte aqui.'}
                 </p>
               </div>
@@ -301,7 +301,7 @@ export default function SettingsSheet({
             {permission === 'unsupported' && needsUpdate && (
               <div className="rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 p-3 text-sm text-blue-900 dark:text-blue-200 space-y-1">
                 <p className="font-medium">Falta atualizar o app.</p>
-                <p>Esta versão do HomeMed ainda não tem as notificações. Abra a Google Play, atualize o HomeMed e volte aqui.</p>
+                <p>Esta versão do HomeMed AI ainda não tem as notificações. Abra a Google Play, atualize o HomeMed AI e volte aqui.</p>
               </div>
             )}
 
@@ -328,7 +328,7 @@ export default function SettingsSheet({
                   ? 'Depois de atualizar, os avisos ficam agendados no seu celular e chegam mesmo com o app fechado.'
                   : native
                   ? 'Os avisos ficam agendados no seu celular e chegam mesmo com o app fechado.'
-                  : 'No navegador, os avisos aparecem quando você abre o HomeMed. No app para Android eles chegam mesmo com o app fechado.'}
+                  : 'No navegador, os avisos aparecem quando você abre o HomeMed AI. No app para Android eles chegam mesmo com o app fechado.'}
               </p>
             </div>
             {native && (

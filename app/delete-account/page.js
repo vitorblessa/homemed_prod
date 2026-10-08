@@ -61,7 +61,7 @@ export default function DeleteAccountPage() {
               <ShieldAlert className="h-7 w-7 text-red-600" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Excluir minha conta HomeMed</h1>
+              <h1 className="text-2xl font-bold">Excluir minha conta HomeMed AI</h1>
               <p className="text-sm text-muted-foreground mt-1">Página pública para solicitar exclusão permanente da sua conta.</p>
             </div>
           </header>
