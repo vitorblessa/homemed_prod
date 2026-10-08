@@ -2,7 +2,7 @@ name: Database Backup
 
 # Backup diário do MongoDB Atlas (plano gratuito não tem backup automático).
 # O dump é criptografado e guardado como artifact do GitHub (fora do Atlas) por 90 dias.
-# Secrets necessários: MONGO_URL, DB_NAME (opcional) e BACKUP_PASSPHRASE.
+# Secrets necessários: MONGO_URL e BACKUP_PASSPHRASE.
 
 on:
   schedule:
@@ -26,17 +26,18 @@ jobs:
       - name: Gerar dump
         env:
           MONGO_URL: ${{ secrets.MONGO_URL }}
-          DB_NAME: ${{ secrets.DB_NAME }}
         run: |
           set -euo pipefail
           if [ -z "${MONGO_URL:-}" ]; then echo "Secret MONGO_URL não configurado"; exit 1; fi
-          DB="${DB_NAME:-homemed}"
-          echo "Banco usado no backup: $DB"
-          mongodump --uri="$MONGO_URL" --db="$DB" --gzip --archive=dump.archive.gz 2>&1 | tee dump.log
+          # Copia todos os bancos do cluster (menos os de sistema), então o nome do banco não importa.
+          mongodump --uri="$MONGO_URL" --gzip --archive=dump.archive.gz \
+            --nsExclude='admin.*' --nsExclude='local.*' --nsExclude='config.*' 2>&1 | tee dump.log
           SIZE=$(stat -c%s dump.archive.gz)
           echo "Tamanho do dump: $SIZE bytes"
+          echo "Bancos e coleções copiados:"
+          grep -o "done dumping [^ ]*" dump.log | sort || true
           if ! grep -q "done dumping" dump.log || [ "$SIZE" -lt 1000 ]; then
-            echo "::error::Nenhum dado encontrado no banco '$DB'. Confira se o secret DB_NAME é igual ao DB_NAME configurado na Vercel (maiúsculas e minúsculas contam)."
+            echo "::error::Nenhum dado encontrado no cluster. Confira se o secret MONGO_URL é o mesmo usado na Vercel."
             exit 1
           fi
 

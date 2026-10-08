@@ -183,13 +183,13 @@ npx cap open android
 
 O workflow **Database Backup** (`.github/workflows/db-backup.yml`) roda todo dia às 03:17 (Brasília) e também sob demanda em *Actions → Database Backup → Run workflow*. Ele faz um `mongodump`, criptografa com AES-256 e guarda o arquivo como artifact por 90 dias.
 
-Secrets necessários (*Settings → Secrets and variables → Actions*): `MONGO_URL`, `DB_NAME` (opcional) e `BACKUP_PASSPHRASE`.
+Secrets necessários (*Settings → Secrets and variables → Actions*): `MONGO_URL` e `BACKUP_PASSPHRASE`. O backup copia todos os bancos do cluster, então o nome do banco não é necessário.
 
 Para restaurar:
 
 ```bash
 gpg --decrypt homemed-backup-AAAA-MM-DD_HHMM.archive.gz.gpg > dump.archive.gz
-mongorestore --uri="$MONGO_URL" --gzip --archive=dump.archive.gz --nsFrom="homemed.*" --nsTo="homemed_restore.*"
+mongorestore --uri="$MONGO_URL" --gzip --archive=dump.archive.gz --nsFrom="NOME_DO_BANCO.*" --nsTo="homemed_restore.*"
 ```
 
 Restaure primeiro num banco separado (`homemed_restore`) e confira os dados antes de copiar para o banco de produção.
