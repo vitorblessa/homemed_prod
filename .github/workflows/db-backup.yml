@@ -31,10 +31,14 @@ jobs:
           set -euo pipefail
           if [ -z "${MONGO_URL:-}" ]; then echo "Secret MONGO_URL não configurado"; exit 1; fi
           DB="${DB_NAME:-homemed}"
-          mongodump --uri="$MONGO_URL" --db="$DB" --gzip --archive=dump.archive.gz
+          echo "Banco usado no backup: $DB"
+          mongodump --uri="$MONGO_URL" --db="$DB" --gzip --archive=dump.archive.gz 2>&1 | tee dump.log
           SIZE=$(stat -c%s dump.archive.gz)
           echo "Tamanho do dump: $SIZE bytes"
-          if [ "$SIZE" -lt 200 ]; then echo "Dump vazio ou suspeito"; exit 1; fi
+          if ! grep -q "done dumping" dump.log || [ "$SIZE" -lt 1000 ]; then
+            echo "::error::Nenhum dado encontrado no banco '$DB'. Confira se o secret DB_NAME é igual ao DB_NAME configurado na Vercel (maiúsculas e minúsculas contam)."
+            exit 1
+          fi
 
       - name: Criptografar
         env:
