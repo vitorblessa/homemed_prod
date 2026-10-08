@@ -1702,41 +1702,51 @@ function AddMedicineDialog({ open, onOpenChange, onSaved, editMed, onOpenExistin
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+    const fillMode = photoMode.current === 'fill' && !!form
     setReadingPhoto(true)
     try {
-      const image_base64 = await shrinkPhoto(file)
-      const res = await fetch('/api/ai/enrich-barcode', {
+      // Stamped dates/lot are tiny: keep more resolution for that photo.
+      const image_base64 = await shrinkPhoto(file, fillMode ? 2200 : 1600, fillMode ? 0.85 : 0.82)
+      const res = await fetch(fillMode ? '/api/ai/read-box-dates' : '/api/ai/enrich-barcode', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barcode: scannedCode || '', image_base64 }),
+        body: JSON.stringify(fillMode ? { image_base64 } : { barcode: scannedCode || '', image_base64 }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || 'Não consegui ler a foto.')
+
+      if (fillMode) {
+        // Only complete what is still empty; never overwrite what the user typed.
+        const found = {
+          lote: typeof data.lote === 'string' ? data.lote.trim() : '',
+          data_fabricacao: VALID_ISO.test(data.data_fabricacao || '') ? data.data_fabricacao : '',
+          data_validade: VALID_ISO.test(data.data_validade || '') ? data.data_validade : '',
+        }
+        const names = { lote: 'lote', data_fabricacao: 'fabricação', data_validade: 'validade' }
+        const got = Object.keys(found).filter(k => found[k] && !form[k])
+        if (got.length) {
+          setForm(f => {
+            const next = { ...f }
+            for (const k of got) if (!f[k]) next[k] = found[k]
+            return next
+          })
+          toast.success(`Li: ${got.map(k => names[k]).join(', ')}. Confira antes de salvar.`)
+        } else {
+          toast.error('Não consegui ler validade nem lote nessa foto. Chegue mais perto do carimbo, com boa luz e sem reflexo, ou digite à mão.')
+        }
+        return
+      }
+
       if (data.reconhecido === false) {
         toast.error('Não consegui reconhecer o remédio nessa foto. Tente de novo com a caixa bem iluminada, ou digite o nome.')
         return
       }
       const fromPhoto = formFromPhoto(data, scannedCode)
-      if (photoMode.current === 'fill' && form) {
-        // Only complete what is still empty; never overwrite what the user typed.
-        const got = []
-        setForm(f => {
-          const next = { ...f }
-          for (const k of ['lote', 'data_fabricacao', 'data_validade']) {
-            if (!f[k] && fromPhoto[k]) { next[k] = fromPhoto[k]; got.push(k) }
-          }
-          return next
-        })
-        toast.success(fromPhoto.data_validade || fromPhoto.lote || fromPhoto.data_fabricacao
-          ? 'Li os dados da foto. Confira antes de salvar.'
-          : 'Não encontrei validade nem lote nessa foto. Preencha à mão ou tente outra foto.')
-      } else {
-        setForm(fromPhoto)
-        toast.success(fromPhoto.data_validade
-          ? 'Li a caixa! Confira os dados e salve.'
-          : 'Reconheci o remédio, mas não li a validade. Digite a data ou tire uma foto da lateral/base da caixa.')
-      }
+      setForm(fromPhoto)
+      toast.success(fromPhoto.data_validade
+        ? 'Li a caixa! Confira os dados e salve.'
+        : 'Reconheci o remédio, mas não li a validade. Use "Ler validade e lote por foto" e fotografe de perto o carimbo (lateral ou aba da caixa).')
     } catch (err) {
       toast.error(err.message || 'Não consegui ler a foto.')
     } finally {

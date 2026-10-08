@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongo';
-import { enrichMedicine, enrichFromBarcodeAndImage, answerInventoryQuestion } from '@/lib/ai';
+import { enrichMedicine, enrichFromBarcodeAndImage, readBoxDates, answerInventoryQuestion } from '@/lib/ai';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -785,6 +785,21 @@ async function handle(request, ctx) {
       }
       const result = await enrichFromBarcodeAndImage({ barcode, image_base64 });
       return json(result);
+    }
+
+    // Lote / fabricação / validade a partir de uma foto (close do carimbo)
+    if (path === '/ai/read-box-dates' && method === 'POST') {
+      const body = await request.json();
+      const image_base64 = body?.image_base64;
+      if (typeof image_base64 !== 'string' || !image_base64) return json({ error: 'image_base64 obrigatório' }, 400);
+      if (image_base64.length > 3_500_000) return json({ error: 'Foto muito grande. Tente de novo com uma foto menor.' }, 413);
+      const rl = await hit(await getDb(), `photo:${userEmail}`, 20, HOUR);
+      if (!rl.allowed) {
+        const res = json({ error: 'Muitas fotos em pouco tempo. Tente de novo mais tarde ou digite os dados.' }, 429);
+        res.headers.set('Retry-After', String(rl.retryAfterSec));
+        return res;
+      }
+      return json(await readBoxDates({ image_base64 }));
     }
 
     // Natural language query on inventory
