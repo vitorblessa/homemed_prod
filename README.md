@@ -188,8 +188,9 @@ Secrets necessários (*Settings → Secrets and variables → Actions*): `MONGO_
 Para restaurar:
 
 ```bash
-gpg --decrypt homemed-backup-AAAA-MM-DD_HHMM.archive.gz.gpg > dump.archive.gz
-mongorestore --uri="$MONGO_URL" --gzip --archive=dump.archive.gz --nsFrom="NOME_DO_BANCO.*" --nsTo="homemed_restore.*"
+gpg --decrypt homemed-backup-AAAA-MM-DD_HHMM.tar.gpg > dump.tar
+tar -xf dump.tar   # gera a pasta dumps/ com um arquivo por banco
+mongorestore --uri="$MONGO_URL" --gzip --archive=dumps/NOME_DO_BANCO.archive.gz --nsFrom="NOME_DO_BANCO.*" --nsTo="homemed_restore.*"
 ```
 
 Restaure primeiro num banco separado (`homemed_restore`) e confira os dados antes de copiar para o banco de produção.

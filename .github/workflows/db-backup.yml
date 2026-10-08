@@ -29,15 +29,30 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${MONGO_URL:-}" ]; then echo "Secret MONGO_URL não configurado"; exit 1; fi
-          # Copia todos os bancos do cluster (menos os de sistema), então o nome do banco não importa.
-          mongodump --uri="$MONGO_URL" --gzip --archive=dump.archive.gz \
-            --nsExclude='admin.*' --nsExclude='local.*' --nsExclude='config.*' 2>&1 | tee dump.log
-          SIZE=$(stat -c%s dump.archive.gz)
-          echo "Tamanho do dump: $SIZE bytes"
-          echo "Bancos e coleções copiados:"
-          grep -o "done dumping [^ ]*" dump.log | sort || true
-          if ! grep -q "done dumping" dump.log || [ "$SIZE" -lt 1000 ]; then
-            echo "::error::Nenhum dado encontrado no cluster. Confira se o secret MONGO_URL é o mesmo usado na Vercel."
+          pip install --quiet "pymongo[srv]"
+          # Descobre os bancos do cluster (menos os de sistema): o nome do banco não importa.
+          python3 - > dbs.txt <<'PY'
+          import os
+          from pymongo import MongoClient
+          names = MongoClient(os.environ["MONGO_URL"], serverSelectionTimeoutMS=20000).list_database_names()
+          print("\n".join(n for n in names if n not in ("admin", "local", "config")))
+          PY
+          echo "Bancos encontrados:"; cat dbs.txt
+          if [ ! -s dbs.txt ]; then
+            echo "::error::Nenhum banco encontrado no cluster. Confira se o secret MONGO_URL é o mesmo usado na Vercel."
+            exit 1
+          fi
+          mkdir dumps
+          while read -r DB; do
+            echo "--- Copiando banco: $DB"
+            mongodump --uri="$MONGO_URL" --db="$DB" --gzip --archive="dumps/$DB.archive.gz" 2>&1 | tee -a dump.log
+          done < dbs.txt
+          tar -cf dump.tar dumps
+          SIZE=$(stat -c%s dump.tar)
+          echo "Tamanho do backup: $SIZE bytes"
+          echo "Coleções copiadas:"; grep -o "done dumping [^ ]*" dump.log | sort || true
+          if ! grep -q "done dumping" dump.log; then
+            echo "::error::Os bancos estão vazios, nada foi copiado."
             exit 1
           fi
 
@@ -50,10 +65,9 @@ jobs:
           STAMP=$(date -u +%Y-%m-%d_%H%M)
           gpg --batch --yes --symmetric --cipher-algo AES256 \
             --passphrase "$BACKUP_PASSPHRASE" \
-            -o "homemed-backup-$STAMP.archive.gz.gpg" dump.archive.gz
-          rm -f dump.archive.gz
+            -o "homemed-backup-$STAMP.tar.gpg" dump.tar
+          rm -rf dump.tar dumps
           ls -l homemed-backup-*.gpg
-          echo "BACKUP_FILE=homemed-backup-$STAMP.archive.gz.gpg" >> "$GITHUB_ENV"
 
       - name: Guardar backup
         uses: actions/upload-artifact@v4
