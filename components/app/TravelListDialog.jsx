@@ -116,7 +116,7 @@ export function TravelListDialog({ open, onOpenChange, medicines }) {
         <DialogFooter className="gap-2 flex-col sm:flex-row">
           <Button variant="outline" disabled={!items.length} onClick={copy} className="gap-2"><Copy className="h-4 w-4" /> Copiar</Button>
           <Button variant="outline" disabled={!items.length} onClick={share} className="gap-2"><Send className="h-4 w-4" /> Compartilhar</Button>
-          <Button disabled={!items.length} onClick={() => { exportTravelPDF(items, opts); toast.success('PDF gerado') }} className="gap-2">
+          <Button disabled={!items.length} onClick={() => { exportTravelPDF(items, opts) }} className="gap-2">
             <FileText className="h-4 w-4" /> PDF ({items.length})
           </Button>
         </DialogFooter>

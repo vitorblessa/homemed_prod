@@ -34,7 +34,6 @@ export function AppHeader({ theme, doLogout, medicines, setAccountOpen, setDoses
                 onClick={() => {
                   if (medicines.length === 0) { toast.error('Nenhum medicamento para exportar'); return }
                   exportToPDF(medicines)
-                  toast.success('PDF gerado')
                 }}
               >
                 <FileText className="h-4 w-4 mr-2 text-red-600" />
@@ -44,7 +43,6 @@ export function AppHeader({ theme, doLogout, medicines, setAccountOpen, setDoses
                 onClick={() => {
                   if (medicines.length === 0) { toast.error('Nenhum medicamento para exportar'); return }
                   exportToExcel(medicines)
-                  toast.success('Excel gerado')
                 }}
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-600" />
@@ -54,7 +52,6 @@ export function AppHeader({ theme, doLogout, medicines, setAccountOpen, setDoses
                 onClick={() => {
                   if (medicines.length === 0) { toast.error('Nenhum medicamento para exportar'); return }
                   exportToCSV(medicines)
-                  toast.success('CSV gerado')
                 }}
               >
                 <File className="h-4 w-4 mr-2 text-blue-600" />
