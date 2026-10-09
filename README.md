@@ -204,7 +204,7 @@ Restaure primeiro num banco separado (`homemed_restore`) e confira os dados ante
 yarn test
 ```
 
-Roda os testes unitários (Vitest) das regras que mais importam: status de validade, plano de notificações, lembretes de dose, lista de viagem, limite de tentativas e índices do banco. Ficam em `tests/unit/`. O script já fixa o fuso `America/Sao_Paulo`.
+Roda os testes (Vitest) das regras que mais importam: status de validade, plano de notificações, lembretes de dose, lista de viagem, limite de tentativas e índices do banco. Há também testes da API que chamam a rota de verdade sobre um banco falso em memória (`tests/helpers/fake-db.js`): cadastro, login, bloqueio por tentativas, recuperação de senha, exclusão de conta, isolamento entre usuários e família. Ficam em `tests/unit/`. O script já fixa o fuso `America/Sao_Paulo`.
 
 A cada envio ao GitHub, o workflow **CI** (`.github/workflows/ci.yml`) roda os testes e compila o site.
 
@@ -216,7 +216,8 @@ app/
 ├── privacy/            Política de Privacidade
 ├── terms/              Termos de Uso
 ├── delete-account/     página pública de exclusão de conta
-└── page.js             aplicação (telas, diálogos, assistente)
+└── page.js             composição da aplicação (estado e fluxo principal)
+components/app/         telas e diálogos (login, painel, cadastro, detalhes, família, conta, assistente)
 components/             componentes de UI (shadcn/ui), configurações e leitor de código de barras
 lib/                    MongoDB, IA, exportação, notificações e utilitários
 android/                projeto nativo do Capacitor
