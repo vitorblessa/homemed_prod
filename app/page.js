@@ -1246,11 +1246,6 @@ function App() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onClick={() => setTravelOpen(true)}>
-                  <Package className="h-4 w-4 mr-2 text-emerald-600" />
-                  Lista de viagem
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuLabel>Exportar farmácia</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -1282,6 +1277,10 @@ function App() {
                 >
                   <File className="h-4 w-4 mr-2 text-blue-600" />
                   CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTravelOpen(true)}>
+                  <Package className="h-4 w-4 mr-2 text-emerald-600" />
+                  Lista de viagem
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
