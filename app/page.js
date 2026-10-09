@@ -1899,10 +1899,16 @@ function TravelListDialog({ open, onOpenChange, medicines }) {
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-2">
-          <Input value={destination} onChange={e => setDestination(e.target.value)} placeholder="Destino (opcional)" className="h-11" aria-label="Destino" />
-          <Input type="date" min={today} value={returnDate} onChange={e => setReturnDate(e.target.value)} className="h-11" aria-label="Data de volta" />
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-muted-foreground">Destino (opcional)</span>
+            <Input value={destination} onChange={e => setDestination(e.target.value)} placeholder="Ex.: Florianópolis" className="h-11" />
+          </label>
+          <label className="space-y-1">
+            <span className="block text-xs font-medium text-muted-foreground">Data de volta (opcional)</span>
+            <Input type="date" min={today} value={returnDate} onChange={e => setReturnDate(e.target.value)} className="h-11" />
+          </label>
         </div>
-        <p className="-mt-1 text-xs text-muted-foreground">Com a data de volta, avisamos o que vence antes de você voltar.</p>
+        <p className="-mt-1 text-xs text-muted-foreground">Informando a data de volta, avisamos o que vence antes de você voltar.</p>
 
         <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar remédio" className="h-11" aria-label="Buscar remédio" />
 
