@@ -24,6 +24,19 @@ body {
 }
 
 /*
+ * Menus, painéis e diálogos (Radix) travam a rolagem do <body> e, ao fazer
+ * isso, zeram o padding dele. No app isso tira o espaço da barra de status:
+ * a página inteira "pula" para cima e para o lado enquanto algo está aberto.
+ * Mantemos o espaço de segurança também nesse estado.
+ */
+html body[data-scroll-locked] {
+  padding-top: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px)) !important;
+  padding-bottom: max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px)) !important;
+  padding-left: var(--safe-area-inset-left, 0px) !important;
+  padding-right: var(--safe-area-inset-right, 0px) !important;
+}
+
+/*
  * Fills the strips the padding above reserves, since Android 15+ won't let
  * us color the real system bars (see the comment in app/layout.js). Fixed
  * so they stay put behind the status/navigation bar while the page scrolls;

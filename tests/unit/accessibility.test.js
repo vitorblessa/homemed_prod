@@ -61,3 +61,12 @@ describe('acessibilidade', () => {
     expect(read('components/SettingsSheet.jsx')).toContain('Tamanho do texto')
   })
 })
+
+describe('app no Android', () => {
+  it('mantém o espaço da barra de status quando um menu ou painel trava a rolagem', () => {
+    const css = read('app/globals.css')
+    const rule = css.match(/body\[data-scroll-locked\]\s*\{[^}]*\}/)?.[0] || ''
+    expect(rule).toContain('safe-area-inset-top')
+    expect(rule).toContain('!important')
+  })
+})
