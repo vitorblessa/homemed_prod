@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { X, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DOSE_REMINDERS_ENABLED } from '@/lib/doses'
 
 // A small spotlight tour with no dependencies. Each step either points at an
 // element (`target` = value of its data-tour attribute) or is centred.
@@ -18,13 +19,25 @@ export const TOUR_STEPS = [
     id: 'add',
     target: 'add',
     title: 'Cadastre com IA',
-    text: 'Tire uma foto da caixa ou escaneie o código de barras. A IA preenche nome, concentração e validade para você.',
+    text: 'Toque em "Fotografar a caixa" e a IA preenche nome, concentração, validade e lote. Se a validade não saiu, use "Ler validade e lote por foto" e fotografe de perto o carimbo da caixa. Também dá para escanear o código de barras.',
   },
   {
     id: 'stats',
     target: 'stats',
     title: 'Seu painel de validades',
     text: 'Veja de relance o que está perto de vencer, o que já venceu e o que está acabando. Toque num cartão para filtrar a lista.',
+  },
+  {
+    id: 'details',
+    emoji: '📖',
+    title: 'Bula simples e descarte',
+    text: 'Abra um remédio para ler um resumo da bula em linguagem simples. Se estiver vencido, o app mostra como descartar e abre o mapa com pontos de coleta perto de você.',
+  },
+  {
+    id: 'travel',
+    target: 'export',
+    title: 'Lista de viagem',
+    text: 'Neste menu, escolha "Lista de viagem" para montar a farmacinha da viagem: marque o que levar, veja o que vence antes da volta e gere um PDF ou envie a lista.',
   },
   {
     id: 'assistant',
@@ -36,7 +49,14 @@ export const TOUR_STEPS = [
     id: 'settings',
     target: 'settings',
     title: 'Avisos e sincronização',
-    text: 'Ative os avisos de vencimento no celular e sincronize seus remédios entre o site e o app.',
+    text: 'Ative os avisos de vencimento e de estoque baixo no celular e sincronize seus remédios entre o site e o app.',
+  },
+  {
+    id: 'doses',
+    requires: 'doses',
+    emoji: '⏰',
+    title: 'Lembrete de horário',
+    text: 'Ao cadastrar ou editar um remédio, adicione os horários de tomar. O app avisa todo dia e, em "Doses de hoje", você marca "Tomei" e o estoque é atualizado.',
   },
   {
     id: 'profile',
@@ -73,7 +93,7 @@ export default function GuidedTour({ open, onFinish }) {
   const [steps, setSteps] = useState(TOUR_STEPS)
   useEffect(() => {
     if (!open) return
-    setSteps(TOUR_STEPS.filter(s => !s.target || findTarget(s.target)))
+    setSteps(TOUR_STEPS.filter(s => (s.requires !== 'doses' || DOSE_REMINDERS_ENABLED) && (!s.target || findTarget(s.target))))
     setIndex(0)
   }, [open])
 
