@@ -2287,6 +2287,78 @@ function Field({ label, children, full }) {
 }
 
 /* ============ MEDICINE DETAIL SHEET ============ */
+function LeafletSummary({ med }) {
+  const [data, setData] = useState(med.bula_resumo || null)
+  const [loading, setLoading] = useState(false)
+  useEffect(() => { setData(med.bula_resumo || null) }, [med.id, med.bula_resumo])
+
+  const generate = async (refresh = false) => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/medicines/${med.id}/leaflet`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(d?.error || 'Não consegui gerar o resumo.')
+      setData(d.bula_resumo)
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const List = ({ title, items, color }) => items?.length ? (
+    <div>
+      <p className={`text-sm font-medium ${color || ''}`}>{title}</p>
+      <ul className="list-disc list-inside text-sm text-muted-foreground space-y-0.5 mt-0.5">
+        {items.map((t, i) => <li key={i} className="break-anywhere">{t}</li>)}
+      </ul>
+    </div>
+  ) : null
+
+  return (
+    <Section title="Resumo da bula">
+      {!data ? (
+        <Button variant="outline" onClick={() => generate(false)} disabled={loading} className="w-full h-11 gap-2">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {loading ? 'Gerando...' : 'Explicar em linguagem simples'}
+        </Button>
+      ) : (
+        <div className="rounded-xl border bg-card p-3 space-y-3">
+          <p className="text-sm break-anywhere">{data.resumo}</p>
+          <List title="Antes de usar" items={data.antes_de_usar} />
+          <List title="Evite misturar com" items={data.evite_misturar} />
+          <List title="Procure ajuda se" items={data.procure_ajuda_se} color="text-red-700 dark:text-red-400" />
+          {data.se_esquecer_uma_dose && (
+            <div>
+              <p className="text-sm font-medium">Se esquecer uma dose</p>
+              <p className="text-sm text-muted-foreground">{data.se_esquecer_uma_dose}</p>
+            </div>
+          )}
+          {data.como_guardar && (
+            <div>
+              <p className="text-sm font-medium">Como guardar</p>
+              <p className="text-sm text-muted-foreground">{data.como_guardar}</p>
+            </div>
+          )}
+          <div className="flex gap-2 text-xs text-muted-foreground border-t pt-2">
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <p>Resumo feito por IA, pode ter erros. Não traz doses e não substitui a bula nem a orientação do seu médico ou farmacêutico.</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => generate(true)} disabled={loading} className="gap-1.5">
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Gerar de novo
+          </Button>
+        </div>
+      )}
+    </Section>
+  )
+}
+
 function MedicineDetailSheet({ med, onClose, onDelete, onQty, onEdit }) {
   return (
     <Sheet open={!!med} onOpenChange={(o) => !o && onClose()}>
@@ -2391,6 +2463,8 @@ function MedicineDetailSheet({ med, onClose, onDelete, onQty, onEdit }) {
               </ul>
             </Section>
           )}
+
+          <LeafletSummary med={med} />
 
           {med.modo_armazenamento && (
             <Section title="Armazenamento">

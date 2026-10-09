@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongo';
-import { enrichMedicine, enrichFromBarcodeAndImage, readBoxDates, answerInventoryQuestion } from '@/lib/ai';
+import { enrichMedicine, enrichFromBarcodeAndImage, readBoxDates, summarizeLeaflet, answerInventoryQuestion } from '@/lib/ai';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -955,6 +955,26 @@ async function handle(request, ctx) {
       return json({ ok: true, quantidade });
     }
 
+    // Resumo da bula em linguagem simples (guardado no medicamento para não repetir a chamada de IA)
+    if (segs[0] === 'medicines' && segs.length === 3 && segs[2] === 'leaflet' && method === 'POST') {
+      const id = segs[1];
+      const body = await request.json().catch(() => ({}));
+      const db = await getDb();
+      const m = await db.collection(COL).findOne({ id, ...scopeFilter(user) });
+      if (!m) return json({ error: 'não encontrado' }, 404);
+      if (m.bula_resumo && !body?.refresh) return json({ bula_resumo: m.bula_resumo, bula_resumo_at: m.bula_resumo_at || null });
+      const rl = await hit(db, `leaflet:${userEmail}`, 30, HOUR);
+      if (!rl.allowed) {
+        const res = json({ error: 'Muitos resumos em pouco tempo. Tente de novo mais tarde.' }, 429);
+        res.headers.set('Retry-After', String(rl.retryAfterSec));
+        return res;
+      }
+      const bula_resumo = await summarizeLeaflet(m);
+      const bula_resumo_at = new Date().toISOString();
+      await db.collection(COL).updateOne({ id, ...scopeFilter(user) }, { $set: { bula_resumo, bula_resumo_at } });
+      return json({ bula_resumo, bula_resumo_at });
+    }
+
     // Single medicine ops (user-scoped)
     if (segs[0] === 'medicines' && segs.length === 2) {
       const id = segs[1];
@@ -974,7 +994,15 @@ async function handle(request, ctx) {
         delete updates.id;
         delete updates.user_email;
         if ('dose_times' in updates) updates.dose_times = normalizeDoseTimes(updates.dose_times);
-        await db.collection(COL).updateOne({ id, ...scopeFilter(user) }, { $set: updates });
+        // O resumo da bula é gerado pelo servidor; o app não o define. Se o remédio mudou, ele deixa de valer.
+        delete updates.bula_resumo;
+        delete updates.bula_resumo_at;
+        const identityChanged = ['nome_comercial', 'principio_ativo', 'concentracao', 'forma_farmaceutica']
+          .some(k => k in updates && String(updates[k] || '') !== String(existing[k] || ''));
+        await db.collection(COL).updateOne(
+          { id, ...scopeFilter(user) },
+          identityChanged ? { $set: updates, $unset: { bula_resumo: '', bula_resumo_at: '' } } : { $set: updates }
+        );
         if (body.quantidade != null && Number(body.quantidade) !== Number(existing.quantidade)) {
           const diff = Number(body.quantidade) - Number(existing.quantidade);
           await db.collection(HIST).insertOne({
