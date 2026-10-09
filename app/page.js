@@ -2287,6 +2287,56 @@ function Field({ label, children, full }) {
 }
 
 /* ============ MEDICINE DETAIL SHEET ============ */
+const COLLECTION_SEARCH_URL =
+  'https://www.google.com/maps/search/?api=1&query=' +
+  encodeURIComponent('farmácia ponto de coleta de medicamentos vencidos')
+
+// Disposal guidance for expired / unwanted medicines (Brazil: Decreto 10.388/2020,
+// reverse logistics: pharmacies and drugstores receive them). The map search
+// uses the phone's own location, so the app needs no location permission.
+function DiscardGuide({ med }) {
+  const expired = med.expiry_status === 'expired'
+  return (
+    <Section title="Descarte" color={expired ? 'text-red-700 dark:text-red-400' : undefined}>
+      <details open={expired} className="rounded-xl border bg-card p-3 text-sm group">
+        <summary className="cursor-pointer font-medium list-none flex items-center justify-between gap-2">
+          <span>{expired ? 'Vencido: como descartar com segurança' : 'Como descartar um remédio'}</span>
+          <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90" />
+        </summary>
+        <div className="mt-3 space-y-3">
+          <div>
+            <p className="font-medium text-red-700 dark:text-red-400">Não jogue</p>
+            <p className="text-muted-foreground">No lixo comum, na pia ou no vaso sanitário. Isso contamina a água e o solo e pode causar acidentes.</p>
+          </div>
+          <div>
+            <p className="font-medium">Leve a um ponto de coleta</p>
+            <p className="text-muted-foreground">
+              Muitas farmácias e drogarias recebem medicamentos vencidos ou que sobraram. Algumas prefeituras e unidades de saúde também recebem. Nem todo estabelecimento participa: confirme antes de ir.
+            </p>
+          </div>
+          <div>
+            <p className="font-medium">Até levar</p>
+            <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+              <li>Guarde na embalagem original, fechado e longe de crianças e animais.</li>
+              <li>Líquidos: mantenha o frasco bem fechado, não derrame.</li>
+              <li>Seringas e agulhas têm regra própria: pergunte na unidade de saúde ou no serviço municipal.</li>
+              <li>Controlados: consulte o ponto de coleta antes de levar.</li>
+            </ul>
+          </div>
+          <Button asChild variant="outline" className="w-full h-11 gap-2">
+            <a href={COLLECTION_SEARCH_URL} target="_blank" rel="noopener noreferrer">
+              <MapPin className="h-4 w-4" /> Buscar pontos de coleta perto de mim
+            </a>
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            A busca abre o mapa do seu celular. Confira no local se o estabelecimento recebe. Regra geral: Decreto federal nº 10.388/2020 (logística reversa de medicamentos).
+          </p>
+        </div>
+      </details>
+    </Section>
+  )
+}
+
 function LeafletSummary({ med }) {
   const [data, setData] = useState(med.bula_resumo || null)
   const [loading, setLoading] = useState(false)
@@ -2465,6 +2515,8 @@ function MedicineDetailSheet({ med, onClose, onDelete, onQty, onEdit }) {
           )}
 
           <LeafletSummary med={med} />
+
+          <DiscardGuide med={med} />
 
           {med.modo_armazenamento && (
             <Section title="Armazenamento">
