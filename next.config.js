@@ -1,5 +1,7 @@
 const nextConfig = {
   output: 'standalone',
+  // Identifies this build so an app left open can notice a newer deploy (see /api/version).
+  env: { NEXT_PUBLIC_BUILD_ID: process.env.VERCEL_GIT_COMMIT_SHA || 'dev' },
   images: {
     unoptimized: true,
     remotePatterns: [

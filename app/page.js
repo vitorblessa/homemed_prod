@@ -813,6 +813,34 @@ function App() {
   // the app was force-closed.
   useEffect(() => { if (!user) lastSigRef.current = null }, [user])
 
+  // The app loads the live site, so an app left open keeps running the code it
+  // started with. When the server reports a newer build, offer a reload.
+  useEffect(() => {
+    const mine = process.env.NEXT_PUBLIC_BUILD_ID
+    if (!mine || mine === 'dev') return
+    let shown = false
+    const check = async () => {
+      if (shown) return
+      try {
+        const r = await fetch('/api/version', { cache: 'no-store' })
+        if (!r.ok) return
+        const { build } = await r.json()
+        if (build && build !== 'dev' && build !== mine) {
+          shown = true
+          toast('Nova versão disponível', {
+            duration: Infinity,
+            action: { label: 'Atualizar', onClick: () => window.location.reload() },
+          })
+        }
+      } catch { /* offline: try again later */ }
+    }
+    const onVisible = () => { if (document.visibilityState === 'visible') check() }
+    document.addEventListener('visibilitychange', onVisible)
+    const t = setInterval(check, 10 * 60 * 1000)
+    check()
+    return () => { document.removeEventListener('visibilitychange', onVisible); clearInterval(t) }
+  }, [])
+
   // Keep the list in step with changes made elsewhere (the website, another
   // family member): refresh when the app comes back to the foreground and
   // every minute while it is open. Quiet and throttled.

@@ -604,6 +604,13 @@ async function handle(request, ctx) {
     }
 
 
+    // Which build is serving (public, no data): lets an open app detect a newer deploy
+    if (path === '/version' && method === 'GET') {
+      const res = json({ build: process.env.VERCEL_GIT_COMMIT_SHA || 'dev' });
+      res.headers.set('Cache-Control', 'no-store');
+      return res;
+    }
+
     // Root (public)
     if (path === '/' || path === '') {
       return json({ ok: true, name: 'HomeMed API' });
