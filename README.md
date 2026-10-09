@@ -220,6 +220,7 @@ app/
 components/app/         telas e diálogos (login, painel, cadastro, detalhes, família, conta, assistente)
 components/             componentes de UI (shadcn/ui), configurações e leitor de código de barras
 lib/api/                módulos da API: auth, famílias, medicamentos, IA e configurações
+lib/data/               acesso aos dados (usuários e sessões, medicamentos e histórico, famílias)
 lib/                    MongoDB, IA, exportação, notificações e utilitários
 android/                projeto nativo do Capacitor
 public/                 manifest PWA, service worker e ícones

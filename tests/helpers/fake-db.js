@@ -31,8 +31,15 @@ export function matches(doc, filter = {}) {
   })
 }
 
+function setPath(doc, key, value) {
+  const parts = key.split('.')
+  let o = doc
+  for (const part of parts.slice(0, -1)) { if (typeof o[part] !== 'object' || o[part] === null) o[part] = {}; o = o[part] }
+  o[parts.at(-1)] = value
+}
+
 function applyUpdate(doc, update, inserting) {
-  for (const [k, v] of Object.entries(update.$set || {})) doc[k] = v
+  for (const [k, v] of Object.entries(update.$set || {})) setPath(doc, k, v)
   if (inserting) for (const [k, v] of Object.entries(update.$setOnInsert || {})) doc[k] = v
   for (const k of Object.keys(update.$unset || {})) delete doc[k]
   for (const [k, v] of Object.entries(update.$inc || {})) doc[k] = (doc[k] || 0) + v
