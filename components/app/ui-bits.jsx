@@ -7,11 +7,11 @@ import { AlertTriangle, CalendarClock, ChevronRight, ChevronLeft, Check, ShieldA
 import { CATEGORIA_COLORS } from '@/components/app/constants'
 
 export function ExpiryBadge({ status, days }) {
-  if (status === 'expired') return <Badge className="bg-red-600 hover:bg-red-600 text-white gap-1"><ShieldAlert className="h-3 w-3"/>Vencido</Badge>
-  if (status === 'critical') return <Badge className="bg-red-500 hover:bg-red-500 text-white gap-1"><AlertTriangle className="h-3 w-3"/>{days}d</Badge>
-  if (status === 'warning_30') return <Badge className="bg-orange-500 hover:bg-orange-500 text-white gap-1"><CalendarClock className="h-3 w-3"/>{days}d</Badge>
-  if (status === 'warning_60') return <Badge className="bg-yellow-500 hover:bg-yellow-500 text-white gap-1"><CalendarClock className="h-3 w-3"/>{days}d</Badge>
-  if (status === 'warning_90') return <Badge className="bg-blue-500 hover:bg-blue-500 text-white gap-1"><CalendarClock className="h-3 w-3"/>{days}d</Badge>
+  if (status === 'expired') return <Badge className="bg-red-700 hover:bg-red-700 text-white gap-1"><ShieldAlert className="h-3 w-3"/>Vencido</Badge>
+  if (status === 'critical') return <Badge className="bg-red-600 hover:bg-red-600 text-white gap-1"><AlertTriangle className="h-3 w-3"/>{days}d</Badge>
+  if (status === 'warning_30') return <Badge className="bg-orange-700 hover:bg-orange-700 text-white gap-1"><CalendarClock className="h-3 w-3"/>{days}d</Badge>
+  if (status === 'warning_60') return <Badge className="bg-yellow-400 hover:bg-yellow-400 text-yellow-950 gap-1"><CalendarClock className="h-3 w-3"/>{days}d</Badge>
+  if (status === 'warning_90') return <Badge className="bg-blue-600 hover:bg-blue-600 text-white gap-1"><CalendarClock className="h-3 w-3"/>{days}d</Badge>
   if (status === 'ok') return <Badge variant="outline" className="border-emerald-300 text-emerald-700 dark:text-emerald-400">{days}d</Badge>
   return <Badge variant="outline">—</Badge>
 }
@@ -38,8 +38,8 @@ export function StatCard({ icon: Icon, label, value, color, subtitle, onClick, a
           </div>
           <div className="mt-2 sm:mt-3">
             <div className="text-xl sm:text-3xl font-bold tracking-tight leading-none">{value}</div>
-            <div className="text-[11px] sm:text-sm text-muted-foreground mt-1 leading-tight">{label}</div>
-            {subtitle && <div className="text-[10px] sm:text-[11px] text-muted-foreground/70 mt-0.5 leading-tight truncate">{subtitle}</div>}
+            <div className="text-xs sm:text-sm text-muted-foreground mt-1 leading-tight">{label}</div>
+            {subtitle && <div className="text-xs text-muted-foreground mt-0.5 leading-tight truncate">{subtitle}</div>}
           </div>
         </CardContent>
       </Card>

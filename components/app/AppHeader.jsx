@@ -17,7 +17,7 @@ export function AppHeader({ theme, doLogout, medicines, setAccountOpen, setDoses
           </div>
           <div className="min-w-0">
             <h1 className="font-bold text-lg tracking-tight leading-none">HomeMed AI</h1>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">{user.name || user.email}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider truncate">{user.name || user.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
@@ -92,6 +92,7 @@ export function AppHeader({ theme, doLogout, medicines, setAccountOpen, setDoses
             size="icon"
             onClick={() => toggleTheme()}
             className="rounded-full"
+            aria-label={theme === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
           >
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
@@ -133,7 +134,7 @@ export function AppHeader({ theme, doLogout, medicines, setAccountOpen, setDoses
                 </a>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={doLogout} className="text-red-600 focus:text-red-600">
+              <DropdownMenuItem onClick={doLogout} className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400">
                 <LogOut className="h-4 w-4 mr-2" /> Sair
               </DropdownMenuItem>
             </DropdownMenuContent>

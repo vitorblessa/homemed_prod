@@ -95,7 +95,7 @@ export default function DeleteAccountPage() {
                 <div>
                   <Label className="text-xs">Senha</Label>
                   <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Sua senha" autoComplete="current-password" />
-                  <p className="text-[11px] text-muted-foreground mt-1">A senha é exigida para provar que você é o dono da conta. Contas Google devem usar a opção &ldquo;Gerenciar conta&rdquo; dentro do app.</p>
+                  <p className="text-xs text-muted-foreground mt-1">A senha é exigida para provar que você é o dono da conta. Contas Google devem usar a opção &ldquo;Gerenciar conta&rdquo; dentro do app.</p>
                 </div>
                 <div>
                   <Label className="text-xs">Digite novamente seu e-mail para confirmar</Label>

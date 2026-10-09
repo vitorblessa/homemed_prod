@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import {
-  Settings, RefreshCw, Compass, BellRing, Bell, Check, Pill, Clock, CalendarClock, AlertTriangle, Loader2, ShieldCheck, Info,
+  Settings, RefreshCw, Compass, BellRing, Bell, Check, Pill, Clock, CalendarClock, AlertTriangle, Loader2, ShieldCheck, Info, Type,
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DAY_OPTIONS, HOUR_MIN, HOUR_MAX } from '@/lib/notification-prefs'
+import { TEXT_SIZES, getTextSize, saveTextSize } from '@/lib/text-size'
 
 const HOURS = Array.from({ length: HOUR_MAX - HOUR_MIN + 1 }, (_, i) => HOUR_MIN + i)
 const pad = (n) => String(n).padStart(2, '0')
@@ -44,7 +45,7 @@ function NotificationPreview({ title, body, hour }) {
         <Pill className="h-4.5 w-4.5 text-white" style={{ width: 18, height: 18 }} />
       </div>
       <div className="min-w-0 text-sm">
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground leading-none mb-1">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground leading-none mb-1">
           <span className="font-medium">HomeMed AI</span>
           <span>•</span>
           <span>{pad(hour)}:00</span>
@@ -73,6 +74,8 @@ export default function SettingsSheet({
   needsUpdate, // Android app too old to have notifications
 }) {
   const [testing, setTesting] = useState(false)
+  const [textSize, setTextSize] = useState('normal')
+  useEffect(() => { if (open) setTextSize(getTextSize()) }, [open])
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     if (!open) return
@@ -209,6 +212,35 @@ export default function SettingsSheet({
                 )}
               </div>
             )}
+          </section>
+
+          {/* ───────── Text size ───────── */}
+          <section className="rounded-2xl border bg-card p-4 space-y-3 shadow-sm">
+            <div className="flex items-start gap-3">
+              <IconTile className="bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300">
+                <Type className="h-5 w-5" />
+              </IconTile>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold leading-tight" id="text-size-title">Tamanho do texto</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">Aumente as letras para ler com mais conforto. Vale só neste aparelho.</p>
+              </div>
+            </div>
+            <div role="radiogroup" aria-labelledby="text-size-title" className="grid grid-cols-3 gap-2">
+              {TEXT_SIZES.map(s => (
+                <button
+                  key={s.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={textSize === s.id}
+                  onClick={() => setTextSize(saveTextSize(s.id))}
+                  className={`rounded-xl border px-2 py-3 text-center font-medium leading-tight transition ${
+                    textSize === s.id ? 'border-primary bg-primary/10 ring-2 ring-primary' : 'hover:bg-accent'
+                  }`}
+                >
+                  {textSize === s.id && <Check className="inline h-4 w-4 mr-1 -mt-0.5 text-primary" aria-hidden />}{s.label}
+                </button>
+              ))}
+            </div>
           </section>
 
           {/* ───────── Low stock ───────── */}

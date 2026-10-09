@@ -52,6 +52,7 @@ site chegam ao app sem precisar de uma nova versão na loja.
 | **Avisos de vencimento** | Lembretes no celular, com dias de antecedência e horário configuráveis |
 | **Assistente de inventário** | Pergunte em linguagem natural o que você tem em casa |
 | **Compartilhamento familiar** | Uma farmácia compartilhada entre os membros da família, por código de convite |
+| **Acessibilidade** | Texto ajustável (Normal, Grande, Muito grande), contraste revisado nos dois temas, zoom por gesto liberado e rótulos para leitor de tela |
 | **Exportação** | Relatórios em PDF, Excel (`.xlsx`) e CSV |
 | **Contas** | Cadastro por e-mail e senha ou Google, recuperação de senha por e-mail e exclusão de conta |
 | **Tema** | Modo claro e escuro |

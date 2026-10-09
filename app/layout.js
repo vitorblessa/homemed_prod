@@ -29,7 +29,6 @@ export const metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
   themeColor: '#2563EB',
   // Lets the app draw under the status/navigation bars (edge-to-edge) so
   // @capacitor-community/safe-area's inset variables have real values to
@@ -37,11 +36,14 @@ export const viewport = {
   viewportFit: 'cover',
 }
 
+import { TEXT_SIZE_BOOT_SCRIPT } from '@/lib/text-size'
+
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{__html:'window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);'}} />
+        <script dangerouslySetInnerHTML={{ __html: TEXT_SIZE_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-screen bg-slate-50 dark:bg-slate-950">
         {/*

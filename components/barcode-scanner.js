@@ -408,13 +408,13 @@ export default function BarcodeScanner({ open, onClose, onDetected }) {
                   </option>
                 ))}
               </select>
-              <p className="text-center text-[10px] text-white/60 mt-1">
+              <p className="text-center text-xs text-white/80 mt-1">
                 Se não focar, troque a câmera acima
               </p>
             </div>
           )}
           {cameras.length <= 1 && currentCam && (
-            <p className="text-center text-[10px] text-white/60 mt-1">
+            <p className="text-center text-xs text-white/80 mt-1">
               {currentCam.label || 'Câmera'}
             </p>
           )}

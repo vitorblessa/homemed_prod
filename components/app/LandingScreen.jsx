@@ -15,7 +15,7 @@ export const LANDING_FEATURES = [
 
 export function LandingScreen({ onGetStarted }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-slate-950 dark:via-slate-950 dark:to-emerald-950">
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-slate-950 dark:via-slate-950 dark:to-emerald-950">
       <div className="max-w-3xl mx-auto px-4 py-10 sm:py-16 space-y-10">
         {/* Hero */}
         <div className="flex flex-col items-center text-center gap-4">
@@ -72,16 +72,16 @@ export function LandingScreen({ onGetStarted }) {
 
         {/* Footer */}
         <div className="text-center space-y-2 pt-4">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Seus medicamentos ficam privados e associados apenas à sua conta.
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             <a href="/privacy" className="underline hover:text-foreground">Política de Privacidade</a>
             {' · '}
             <a href="/terms" className="underline hover:text-foreground">Termos de Uso</a>
           </p>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

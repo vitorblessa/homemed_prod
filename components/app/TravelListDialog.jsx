@@ -91,7 +91,7 @@ export function TravelListDialog({ open, onOpenChange, medicines }) {
                   <div className="text-xs text-muted-foreground">
                     {m.data_validade ? `Validade ${fmtBR(m.data_validade)}` : 'Sem validade'} · estoque {m.quantidade ?? 0}
                   </div>
-                  {expired && <div className="text-xs text-red-600">Vencido: não leve</div>}
+                  {expired && <div className="text-xs text-red-600 dark:text-red-400">Vencido: não leve</div>}
                   {on && issue === 'before_return' && <div className="text-xs text-amber-600">Vence antes da sua volta</div>}
                 </div>
                 {on && (

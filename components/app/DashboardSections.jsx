@@ -21,7 +21,8 @@ export function SearchHero({ search, setAddOpen, setSearch }) {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome, princípio ativo, local..."
+              placeholder="Buscar remédio, princípio ativo..."
+              aria-label="Buscar medicamento"
               className="pl-9 bg-white text-slate-900 border-0 h-11"
             />
           </div>

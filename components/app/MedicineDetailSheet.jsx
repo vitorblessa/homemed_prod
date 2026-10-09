@@ -154,7 +154,7 @@ export function MedicineDetailSheet({ med, onClose, onDelete, onQty, onEdit }) {
             <Button onClick={onEdit} variant="outline" className="gap-2 w-full">
               <Edit2 className="h-4 w-4" /> Editar
             </Button>
-            <Button variant="outline" onClick={onDelete} className="gap-2 w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900">
+            <Button variant="outline" onClick={onDelete} className="gap-2 w-full text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900">
               <Trash2 className="h-4 w-4" /> Remover
             </Button>
           </div>
@@ -228,7 +228,7 @@ export function MedicineDetailSheet({ med, onClose, onDelete, onQty, onEdit }) {
               <ul className="text-sm space-y-1">
                 {med.efeitos_colaterais.map((i, k) => (
                   <li key={k} className="flex gap-2">
-                    <Info className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                    <Info className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
                     <span className="break-anywhere flex-1 min-w-0">{i}</span>
                   </li>
                 ))}
@@ -274,7 +274,7 @@ export function InfoRow({ label, value, mono, full }) {
   if (!value) return null
   return (
     <div className={`min-w-0 ${full ? 'col-span-2' : ''}`}>
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
       <p className={`text-sm font-medium break-anywhere ${mono ? 'font-mono text-xs' : ''}`}>{value}</p>
     </div>
   )

@@ -91,7 +91,7 @@ export function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, res
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-slate-950 dark:via-slate-950 dark:to-emerald-950">
+    <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-white to-emerald-50 dark:from-slate-950 dark:via-slate-950 dark:to-emerald-950">
       <Toaster position="top-center" richColors offset="calc(var(--safe-area-inset-top, 0px) + 12px)" mobileOffset="calc(var(--safe-area-inset-top, 0px) + 12px)" />
       <Card className="w-full max-w-md border-0 shadow-xl">
         <CardContent className="p-6 sm:p-8 space-y-5">
@@ -163,7 +163,7 @@ export function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, res
                 <button
                   type="button"
                   onClick={() => setShowPass(v => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] px-3 text-sm text-muted-foreground hover:text-foreground"
                 >
                   {showPass ? 'Ocultar' : 'Mostrar'}
                 </button>
@@ -297,7 +297,7 @@ export function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, res
                     <button
                       type="button"
                       onClick={() => setShowPass(v => !v)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] px-3 text-sm text-muted-foreground hover:text-foreground"
                     >
                       {showPass ? 'Ocultar' : 'Mostrar'}
                     </button>
@@ -311,11 +311,11 @@ export function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, res
             </div>
           )}
 
-          <p className="text-[11px] text-center text-muted-foreground">
+          <p className="text-xs text-center text-muted-foreground">
             Seus medicamentos ficam privados e associados apenas à sua conta.
           </p>
         </CardContent>
       </Card>
-    </div>
+    </main>
   )
 }
