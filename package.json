@@ -7,7 +7,8 @@
         "dev:no-reload": "next dev --hostname 0.0.0.0 --port 3000",
         "dev:webpack": "next dev --hostname 0.0.0.0 --port 3000",
         "build": "next build",
-        "start": "next start"
+        "start": "next start",
+        "test": "TZ=America/Sao_Paulo vitest run"
     },
     "dependencies": {
         "@capacitor-community/safe-area": "6.0.0-alpha.8",
@@ -89,7 +90,8 @@
         "autoprefixer": "10.4.19",
         "globals": "16.2.0",
         "postcss": "8",
-        "tailwindcss": "3.4.19"
+        "tailwindcss": "3.4.19",
+        "vitest": "2"
     },
     "resolutions": {
         "follow-redirects": "1.16.0",

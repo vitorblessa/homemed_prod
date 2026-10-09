@@ -8,6 +8,7 @@ import { normalizeNotificationPrefs } from '@/lib/notification-prefs';
 import { hit, clear, clientIp, tooManyMessage } from '@/lib/rate-limit';
 import { reportError } from '@/lib/monitoring';
 import { normalizeDoseTimes, isValidTime } from '@/lib/doses';
+import { computeStatus } from '@/lib/medicine-status';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -116,27 +117,6 @@ function json(data, status = 200, extra = {}) {
     });
   }
   return res;
-}
-
-function daysUntil(dateStr) {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d)) return null;
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  return Math.round((target - now) / (1000 * 60 * 60 * 24));
-}
-
-function computeStatus(med) {
-  const d = daysUntil(med.data_validade);
-  if (d == null) return { expiry_status: 'unknown', days_until_expiry: null };
-  if (d < 0) return { expiry_status: 'expired', days_until_expiry: d };
-  if (d <= 7) return { expiry_status: 'critical', days_until_expiry: d };
-  if (d <= 30) return { expiry_status: 'warning_30', days_until_expiry: d };
-  if (d <= 60) return { expiry_status: 'warning_60', days_until_expiry: d };
-  if (d <= 90) return { expiry_status: 'warning_90', days_until_expiry: d };
-  return { expiry_status: 'ok', days_until_expiry: d };
 }
 
 async function currentUser(request) {

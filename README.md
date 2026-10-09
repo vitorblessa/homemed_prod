@@ -31,6 +31,7 @@ Controle medicamentos, validades e estoque, com identificação por foto e códi
 - [Deploy em produção](#-deploy-em-produção)
 - [App Android](#-app-android)
 - [Backup do banco](#-backup-do-banco)
+- [Testes](#-testes)
 - [Estrutura do projeto](#-estrutura-do-projeto)
 - [Licença](#-licença)
 
@@ -93,6 +94,7 @@ Copie `.env.example` para `.env` e preencha:
 | `MONGO_URL` | Sim | Connection string do MongoDB Atlas (Connect → Drivers → Node.js) |
 | `DB_NAME` | Sim | Nome do banco (padrão: `homemed`) |
 | `SENTRY_DSN` | Não | Endereço do projeto no Sentry para registrar erros do servidor (sem dados pessoais) |
+| `NEXT_PUBLIC_DOSE_REMINDERS` | Não | `true` liga o lembrete de horário de tomar ("Doses de hoje"). Desligado por padrão. É lida na compilação: depois de mudar, faça um novo deploy |
 | `GEMINI_API_KEY` | Sim | Chave da API do [Google AI Studio](https://aistudio.google.com/apikey) |
 | `GOOGLE_CLIENT_ID` | Para login Google | ID do cliente OAuth do Google |
 | `GOOGLE_CLIENT_SECRET` | Para login Google | Chave secreta do mesmo cliente OAuth |
@@ -195,6 +197,16 @@ mongorestore --uri="$MONGO_URL" --gzip --archive=dumps/NOME_DO_BANCO.archive.gz 
 ```
 
 Restaure primeiro num banco separado (`homemed_restore`) e confira os dados antes de copiar para o banco de produção.
+
+## 🧪 Testes
+
+```bash
+yarn test
+```
+
+Roda os testes unitários (Vitest) das regras que mais importam: status de validade, plano de notificações, lembretes de dose, lista de viagem, limite de tentativas e índices do banco. Ficam em `tests/unit/`. O script já fixa o fuso `America/Sao_Paulo`.
+
+A cada envio ao GitHub, o workflow **CI** (`.github/workflows/ci.yml`) roda os testes e compila o site.
 
 ## 🗂️ Estrutura do projeto
 

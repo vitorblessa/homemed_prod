@@ -1,0 +1,38 @@
+name: CI
+
+# A cada envio ao GitHub (e a cada pull request): roda os testes e confere que o
+# site compila. Assim um erro aparece aqui, e não depois do deploy.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependências
+        run: yarn install --ignore-engines
+
+      - name: Testes
+        run: yarn test
+
+      - name: Compilar o site
+        run: yarn build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
