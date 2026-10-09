@@ -27,7 +27,7 @@ export function AppHeader({ theme, doLogout, medicines, setAccountOpen, setDoses
                 <Download className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent align="end" sideOffset={18} className="w-52">
               <DropdownMenuLabel>Exportar farmácia</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -107,7 +107,7 @@ export function AppHeader({ theme, doLogout, medicines, setAccountOpen, setDoses
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" sideOffset={18} className="w-56">
               <DropdownMenuLabel>
                 <div className="text-sm font-medium truncate">{user.name}</div>
                 <div className="text-xs text-muted-foreground truncate font-normal">{user.email}</div>
