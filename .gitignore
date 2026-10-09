@@ -110,5 +110,3 @@ capacitor.config.local.json
 # Build outputs
 /out
 
-# Gerado localmente; o deploy não usa lockfile
-yarn.lock
