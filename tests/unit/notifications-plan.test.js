@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  buildLowStockReminder, buildMessage, buildNotificationPlan, isLowStock, medicineLabel, parseLocalDate,
+  buildLowStockReminder, buildLowStockReminders, buildMessage, buildNotificationPlan, isLowStock, medicineLabel, parseLocalDate,
 } from '@/lib/notifications'
 
 const prefs = { enabled: true, days_before: [30, 7, 0], hour: 9, low_stock: true }
@@ -113,6 +113,14 @@ describe('estoque baixo', () => {
   it('nada a avisar ou opção desligada: null', () => {
     expect(buildLowStockReminder([ok], prefs, NOW)).toBeNull()
     expect(buildLowStockReminder([low], { ...prefs, low_stock: false }, NOW)).toBeNull()
+  })
+
+  it('agenda o aviso de estoque baixo para vários dias seguidos, com ids distintos', () => {
+    const list = buildLowStockReminders([low], prefs, NOW)
+    expect(list).toHaveLength(7)
+    expect(new Set(list.map(r => r.id)).size).toBe(7)
+    expect(list.map(r => r.at.getDate())).toEqual([9, 10, 11, 12, 13, 14, 15])
+    expect(buildLowStockReminders([ok], prefs, NOW)).toEqual([])
   })
 
   it('mensagem para um e para vários', () => {

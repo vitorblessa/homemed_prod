@@ -281,6 +281,20 @@ export default function SettingsSheet({
               {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               {syncing ? 'Sincronizando...' : 'Sincronizar agora'}
             </Button>
+            {native && permission === 'granted' && (
+              <details className="rounded-xl border bg-muted/40 p-3 text-sm">
+                <summary className="cursor-pointer font-medium">Os avisos não chegam com o app fechado?</summary>
+                <div className="mt-2 space-y-2 text-muted-foreground leading-relaxed">
+                  <p>Alguns celulares (Samsung, Xiaomi, Motorola) suspendem apps que ficam fechados e cancelam os avisos agendados. Para evitar:</p>
+                  <ol className="list-decimal pl-5 space-y-1">
+                    <li>Abra Configurações → Apps → HomeMed AI → Bateria e escolha <strong>Sem restrições</strong>.</li>
+                    <li>No Samsung, vá em Configurações → Bateria → Limites de uso em segundo plano e tire o HomeMed AI de <strong>Apps em suspensão</strong> e <strong>Apps em suspensão profunda</strong>. Desative também "Suspender apps não usados".</li>
+                    <li>Abra o HomeMed AI uma vez depois disso, para os avisos serem agendados de novo.</li>
+                  </ol>
+                </div>
+              </details>
+            )}
+
             <div className="flex gap-2 text-xs text-muted-foreground leading-relaxed">
               <Info className="h-4 w-4 shrink-0 mt-0.5" />
               <p>
