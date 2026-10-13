@@ -48,6 +48,12 @@ async function handle(request, ctx) {
 
     return json({ error: 'rota não encontrada', path, method }, 404);
   } catch (e) {
+    if (e?.name === 'AIUnavailableError') {
+      // Temporary failure on Google's side: short message for the user, short detail for monitoring.
+      console.error('AI unavailable', e.status, e.detail);
+      await reportError(new Error(`AI unavailable (${e.status}): ${e.detail}`), { route: path, method });
+      return json({ error: e.message }, 503);
+    }
     console.error('API error', e);
     await reportError(e, { route: path, method });
     return json({ error: e.message || 'erro interno' }, 500);
