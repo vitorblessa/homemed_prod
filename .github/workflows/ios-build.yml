@@ -1,0 +1,57 @@
+name: iOS Build (sem assinatura)
+
+# Compila o app iOS num macOS do GitHub (com Xcode recente) SEM assinar.
+# Serve para provar que o projeto compila e para pegar erros cedo, sem precisar
+# de conta Apple Developer nem de um Mac. O build assinado para a TestFlight
+# (.ipa) vem depois, quando houver a conta e os segredos de assinatura.
+#
+# Como o Android, o app só carrega o site (https://www.homemed.tech) dentro de
+# um WebView nativo; os plugins do Capacitor cuidam de câmera, notificações etc.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install JS dependencies
+        run: yarn install --frozen-lockfile --ignore-engines
+
+      - name: Prepare placeholder web assets
+        run: |
+          mkdir -p out
+          echo '<!doctype html><title>HomeMed</title>' > out/index.html
+
+      - name: Sync Capacitor iOS project
+        # também roda `pod install`
+        run: npx cap sync ios
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build for iOS Simulator (no code signing)
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO | tail -n 60
+
+      - name: Upload .app (simulator)
+        uses: actions/upload-artifact@v4
+        with:
+          name: homemed-ios-simulator-app
+          path: ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Debug-iphonesimulator/App.app
+          if-no-files-found: warn
