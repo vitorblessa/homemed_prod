@@ -27,10 +27,14 @@ const nextConfig = {
   async headers() {
     // Origins allowed for CORS. Restrict in production by setting CORS_ORIGINS.
     // Defaults include the Emergent preview and Capacitor WebView origins.
-    const corsOrigins = process.env.CORS_ORIGINS || '*';
-    // Frame ancestors: keep permissive during dev to not break the preview iframe;
-    // restrict in production via NEXT_PUBLIC_BASE_URL.
-    const frameAncestors = process.env.FRAME_ANCESTORS || "'self' https:";
+    // Credenciais + "*" não são aceitos pelos navegadores, então "*" ou vazio
+    // significa "sem CORS" (só a própria origem). Para liberar outro site,
+    // informe UMA origem exata em CORS_ORIGINS.
+    const corsEnv = (process.env.CORS_ORIGINS || '').trim();
+    const corsOrigin = corsEnv && corsEnv !== '*' && !corsEnv.includes(',') ? corsEnv : null;
+    // Frame ancestors: only the app itself may embed its pages (clickjacking).
+    // Set FRAME_ANCESTORS only if a trusted site must embed it.
+    const frameAncestors = process.env.FRAME_ANCESTORS || "'self'";
     return [
       {
         // API routes: CORS + no framing
@@ -39,10 +43,13 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Access-Control-Allow-Origin', value: corsOrigins },
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PATCH, PUT, DELETE, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization, X-Session-ID' },
+          ...(corsOrigin ? [
+            { key: 'Access-Control-Allow-Origin', value: corsOrigin },
+            { key: 'Access-Control-Allow-Credentials', value: 'true' },
+            { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PATCH, PUT, DELETE, OPTIONS' },
+            { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization, X-Session-ID' },
+            { key: 'Vary', value: 'Origin' },
+          ] : []),
         ],
       },
       {
@@ -51,7 +58,8 @@ const nextConfig = {
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(self), microphone=()' },
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
           { key: 'Content-Security-Policy', value: `frame-ancestors ${frameAncestors};` },
         ],
       },

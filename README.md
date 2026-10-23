@@ -158,8 +158,9 @@ preferências ficam salvas na conta (`GET` e `PUT /api/settings`).
 2. Em **Environment Variables**, adicione as variáveis da tabela acima.
 3. Clique em **Deploy**. O `next.config.js` já traz `output: 'standalone'` e
    cabeçalhos de segurança (CSP, CORS etc.).
-4. Depois do primeiro deploy, ajuste `CORS_ORIGINS` e `FRAME_ANCESTORS` para a
-   URL final de produção, em vez de `*`.
+4. `CORS_ORIGINS` e `FRAME_ANCESTORS` podem ficar vazios: só o próprio site usa
+   a API e enquadra o app. Preencha apenas se um site de confiança precisar
+   (uma origem exata, nunca `*`).
 
 ## 🤖 App Android
 
