@@ -42,7 +42,7 @@ export function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, res
   }
 
   const submitReset = async () => {
-    if (newPassword.length < 6) return toast.error('Senha deve ter ao menos 6 caracteres')
+    if (newPassword.length < 8) return toast.error('Senha deve ter ao menos 8 caracteres')
     setLoading(true)
     try {
       const res = await fetch('/api/auth/reset-password', {
@@ -68,7 +68,7 @@ export function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, res
 
   const submit = async () => {
     if (!email.includes('@')) return toast.error('Informe um email válido')
-    if (password.length < 6) return toast.error('Senha deve ter ao menos 6 caracteres')
+    if (password.length < 8) return toast.error('Senha deve ter ao menos 8 caracteres')
     setLoading(true)
     try {
       const url = tab === 'register' ? '/api/auth/register' : '/api/auth/login'
@@ -156,7 +156,7 @@ export function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, res
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres"
                   autoComplete={tab === 'register' ? 'new-password' : 'current-password'}
                   onKeyDown={e => e.key === 'Enter' && submit()}
                 />
@@ -290,7 +290,7 @@ export function LoginScreen({ onGoogleLogin, onLoggedIn, onBack, initialTab, res
                       type={showPass ? 'text' : 'password'}
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder="Mínimo 8 caracteres"
                       autoComplete="new-password"
                       onKeyDown={e => e.key === 'Enter' && submitReset()}
                     />

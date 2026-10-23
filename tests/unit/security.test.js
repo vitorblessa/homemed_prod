@@ -68,7 +68,7 @@ describe('D1 · autenticação obrigatória', () => {
 
   it('sessão expirada é recusada', async () => {
     const c = await signup('ana@example.com')
-    db.rows('sessions').find(s => s.token === c).expires_at = new Date(Date.now() - 1000)
+    db.rows('sessions')[0].expires_at = new Date(Date.now() - 1000)
     expect((await req('GET', '/medicines', { cookie: c })).status).toBe(401)
   })
 
@@ -185,9 +185,19 @@ describe('D3 · senhas e redefinição', () => {
     expect(emails.at(-1).text).toContain('https://app.test/?reset=')
   })
 
-  it.fails('[ABERTO · recomendação] exige senha de pelo menos 8 caracteres', async () => {
+  it('exige senha de pelo menos 8 caracteres no cadastro e na redefinição', async () => {
     const r = await req('POST', '/auth/register', { body: { email: 'x@example.com', password: '1234567', name: 'X' } })
     expect(r.status).toBe(400)
+    await signup('ana@example.com')
+    await req('POST', '/auth/forgot-password', { body: { email: 'ana@example.com' } })
+    const token = emails.at(-1).text.match(/\?reset=([0-9a-f]+)/)[1]
+    expect((await req('POST', '/auth/reset-password', { body: { token, password: '1234567' } })).status).toBe(400)
+  })
+
+  it('quem já tem senha de 6 ou 7 caracteres continua conseguindo entrar', async () => {
+    const bcrypt = (await import('bcryptjs')).default
+    db.rows('users').push({ email: 'antiga@example.com', name: 'A', password_hash: await bcrypt.hash('abc123', 10) })
+    expect((await req('POST', '/auth/login', { body: { email: 'antiga@example.com', password: 'abc123' } })).status).toBe(200)
   })
 })
 
@@ -218,9 +228,23 @@ describe('D4 · sessão', () => {
     expect((await req('GET', '/medicines', { cookie: c })).status).toBe(401)
   })
 
-  it.fails('[ABERTO · recomendação] sessão guardada só como hash no banco', async () => {
+  it('o servidor não guarda o token da sessão em texto puro', async () => {
     const c = await signup('ana@example.com')
     expect(JSON.stringify(db.rows('sessions'))).not.toContain(c)
+  })
+
+  it('o valor guardado no banco não funciona como cookie (vazamento do banco não vira sessão)', async () => {
+    await signup('ana@example.com')
+    const stored = db.rows('sessions')[0].token
+    expect((await req('GET', '/medicines', { cookie: stored })).status).toBe(401)
+  })
+
+  it('sessões antigas (guardadas em texto) continuam valendo até expirar', async () => {
+    db.rows('users').push({ email: 'velha@example.com', name: 'V' })
+    db.rows('sessions').push({ token: 'legado.token', email: 'velha@example.com', name: 'V', expires_at: new Date(Date.now() + 3600e3) })
+    expect((await req('GET', '/auth/me', { cookie: 'legado.token' })).data.user.email).toBe('velha@example.com')
+    await req('POST', '/auth/logout', { cookie: 'legado.token' })
+    expect((await req('GET', '/auth/me', { cookie: 'legado.token' })).data.user).toBeNull()
   })
 })
 
