@@ -11,6 +11,9 @@ name: iOS Build (sem assinatura)
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: macos-15

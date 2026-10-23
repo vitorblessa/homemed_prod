@@ -32,7 +32,7 @@ beforeEach(() => {
   db = createFakeDb()
   emails = []
   vi.stubGlobal('fetch', vi.fn(async (url, init) => {
-    if (String(url).includes('resend.com')) { emails.push(JSON.parse(init.body)); return { ok: true, status: 200, text: async () => '' } }
+    if (new URL(String(url)).hostname === 'api.resend.com') { emails.push(JSON.parse(init.body)); return { ok: true, status: 200, text: async () => '' } }
     throw new Error('fetch inesperado: ' + url)
   }))
   vi.spyOn(console, 'warn').mockImplementation(() => {})
