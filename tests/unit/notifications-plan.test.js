@@ -129,3 +129,29 @@ describe('estoque baixo', () => {
     expect(two.title).toBe('2 medicamentos com estoque baixo')
   })
 })
+
+describe('buildSessionReminders', () => {
+  const now = new Date('2026-11-06T12:00:00-03:00')
+
+  it('agenda aviso 24h antes e outro no vencimento', async () => {
+    const { buildSessionReminders } = await import('@/lib/notifications')
+    const end = new Date('2026-11-10T12:00:00-03:00')
+    const r = buildSessionReminders(end.toISOString(), now)
+    expect(r.map(x => x.id)).toEqual([20, 21])
+    expect(r[0].at.getTime()).toBe(end.getTime() - 24 * 3600 * 1000)
+    expect(r[1].at.getTime()).toBe(end.getTime())
+  })
+
+  it('só o aviso de vencimento quando falta menos de 24h', async () => {
+    const { buildSessionReminders } = await import('@/lib/notifications')
+    const r = buildSessionReminders(new Date(now.getTime() + 5 * 3600 * 1000).toISOString(), now)
+    expect(r.map(x => x.id)).toEqual([21])
+  })
+
+  it('nada quando já venceu ou a data é inválida', async () => {
+    const { buildSessionReminders } = await import('@/lib/notifications')
+    expect(buildSessionReminders(new Date(now.getTime() - 1000).toISOString(), now)).toEqual([])
+    expect(buildSessionReminders(null, now)).toEqual([])
+    expect(buildSessionReminders('abc', now)).toEqual([])
+  })
+})

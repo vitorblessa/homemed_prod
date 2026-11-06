@@ -10,7 +10,8 @@ import { useAndroidBack } from '@/lib/useAndroidBack'
 import { toast, Toaster } from 'sonner'
 import { Search, Plus, Loader2, MessageCircle, Settings } from 'lucide-react'
 import { DEFAULT_NOTIFICATION_PREFS, normalizeNotificationPrefs } from '@/lib/notification-prefs'
-import { getNotificationPermission } from '@/lib/notifications'
+import { cancelSessionReminders, getNotificationPermission, syncSessionReminders } from '@/lib/notifications'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { LandingScreen } from '@/components/app/LandingScreen'
 import { LoginScreen } from '@/components/app/LoginScreen'
 import { AppHeader } from '@/components/app/AppHeader'
@@ -19,6 +20,16 @@ import { AppDialogs } from '@/components/app/AppDialogs'
 import { useReminders } from '@/components/app/useReminders'
 
 const GOOGLE_WEB_CLIENT_ID = '225884335654-q7j0bih6j8sa02bnm4jdmi3cdid4qo91.apps.googleusercontent.com'
+
+// Lembra que houve login neste aparelho, para explicar o motivo quando a
+// sessão vence e o app volta para a tela de entrada.
+const SESSION_FLAG = 'homemed_was_logged_in'
+const flagSession = (on) => {
+  try { on ? localStorage.setItem(SESSION_FLAG, '1') : localStorage.removeItem(SESSION_FLAG) } catch { /* sem storage */ }
+}
+const hadSession = () => {
+  try { return localStorage.getItem(SESSION_FLAG) === '1' } catch { return false }
+}
 
 function App() {
   const { theme, setTheme } = useTheme()
@@ -37,6 +48,8 @@ function App() {
   const [aiOpen, setAiOpen] = useState(false)
   const [familyOpen, setFamilyOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const sessionExpiredRef = useRef(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [dosesOpen, setDosesOpen] = useState(false)
   const [travelOpen, setTravelOpen] = useState(false)
@@ -93,6 +106,16 @@ function App() {
         fetch('/api/medicines?' + params.toString(), { credentials: 'include' }),
         fetch('/api/stats', { credentials: 'include' }),
       ])
+      if (medRes.status === 401 || statRes.status === 401) {
+        if (!sessionExpiredRef.current) {
+          sessionExpiredRef.current = true
+          flagSession(false)
+          setUser(null)
+          setMedicines([])
+          toast.error('Sua sessão expirou. Entre novamente para continuar.')
+        }
+        return false
+      }
       if (!medRes.ok || !statRes.ok) throw new Error('bad status')
       const medData = await medRes.json()
       const statData = await statRes.json()
@@ -162,6 +185,10 @@ function App() {
         const res = await fetch('/api/auth/me', { credentials: 'include' })
         const data = await res.json()
         setUser(data.user)
+        if (!data.user && hadSession() && !authError) {
+          flagSession(false)
+          toast.error('Sua sessão expirou. Entre novamente para continuar.')
+        }
 
         if (data.user && welcome) {
           toast.success(`Bem-vindo, ${data.user.name || data.user.email}!`)
@@ -178,6 +205,14 @@ function App() {
   }, [])
 
   useEffect(() => { if (user) loadAll() }, [loadAll, user])
+
+  // Com login ativo: marca o aparelho e agenda os avisos de "entre novamente".
+  useEffect(() => {
+    if (!user) return
+    sessionExpiredRef.current = false
+    flagSession(true)
+    syncSessionReminders(user.session_expires_at).catch(e => console.warn('Session reminder sync failed', e))
+  }, [user])
 
   // Forget the last-seen data when nobody is signed in. Without this, signing
   // out and back into the same account fetched an identical list, matched the
@@ -376,6 +411,8 @@ function App() {
 
   const doLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    flagSession(false)
+    cancelSessionReminders()
     setUser(null)
     setMedicines([])
     setStats({ total: 0, expired: 0, expiring: 0, low_stock: 0, categories: {}, last_added: [] })
@@ -506,7 +543,7 @@ function App() {
       <Toaster position="top-center" richColors offset="calc(var(--safe-area-inset-top, 0px) + 12px)" mobileOffset="calc(var(--safe-area-inset-top, 0px) + 12px)" />
 
       {/* Header */}
-      <AppHeader theme={theme} doLogout={doLogout} medicines={medicines} setAccountOpen={setAccountOpen} setDosesOpen={setDosesOpen} setFamilyOpen={setFamilyOpen} setSettingsOpen={setSettingsOpen} setTravelOpen={setTravelOpen} toggleTheme={toggleTheme} user={user} />
+      <AppHeader theme={theme} doLogout={() => setLogoutOpen(true)} medicines={medicines} setAccountOpen={setAccountOpen} setDosesOpen={setDosesOpen} setFamilyOpen={setFamilyOpen} setSettingsOpen={setSettingsOpen} setTravelOpen={setTravelOpen} toggleTheme={toggleTheme} user={user} />
 
       <main className="container mx-auto max-w-6xl px-4 pb-28 pt-5 space-y-6">
         {/* Hero / Search */}
@@ -538,7 +575,22 @@ function App() {
         <Plus className="h-6 w-6" />
       </button>
 
-      <AppDialogs accountOpen={accountOpen} addOpen={addOpen} aiOpen={aiOpen} askNotificationPermission={askNotificationPermission} detailMed={detailMed} dosesOpen={dosesOpen} editMed={editMed} familyOpen={familyOpen} finishTour={finishTour} handleDelete={handleDelete} handleQuickQuantity={handleQuickQuantity} lastSync={lastSync} loadAll={loadAll} medicines={medicines} nextReminder={nextReminder} notifPermission={notifPermission} notifPrefs={notifPrefs} setAccountOpen={setAccountOpen} setAddOpen={setAddOpen} setAiOpen={setAiOpen} setDetailMed={setDetailMed} setDosesOpen={setDosesOpen} setEditMed={setEditMed} setFamilyOpen={setFamilyOpen} setMedicines={setMedicines} setSettingsOpen={setSettingsOpen} setStats={setStats} setTravelOpen={setTravelOpen} setUser={setUser} settingsOpen={settingsOpen} startTour={startTour} syncNow={syncNow} syncing={syncing} testNotification={testNotification} tourOpen={tourOpen} travelOpen={travelOpen} updateNotifPrefs={updateNotifPrefs} user={user} />
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair da conta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você precisará entrar de novo para ver seus medicamentos e receber os avisos de sessão.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={doLogout}>Sair</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AppDialogs accountOpen={accountOpen} addOpen={addOpen} aiOpen={aiOpen} askNotificationPermission={askNotificationPermission} detailMed={detailMed} dosesOpen={dosesOpen} editMed={editMed} familyOpen={familyOpen} finishTour={finishTour} handleDelete={handleDelete} handleQuickQuantity={handleQuickQuantity} lastSync={lastSync} loadAll={loadAll} medicines={medicines} nextReminder={nextReminder} notifPermission={notifPermission} notifPrefs={notifPrefs} setAccountOpen={setAccountOpen} setAddOpen={setAddOpen} setAiOpen={setAiOpen} setDetailMed={setDetailMed} setDosesOpen={setDosesOpen} setEditMed={setEditMed} setFamilyOpen={setFamilyOpen} setMedicines={setMedicines} setSettingsOpen={setSettingsOpen} setStats={setStats} setTravelOpen={setTravelOpen} setUser={(u) => { if (!u) { flagSession(false); cancelSessionReminders() } setUser(u) }} settingsOpen={settingsOpen} startTour={startTour} syncNow={syncNow} syncing={syncing} testNotification={testNotification} tourOpen={tourOpen} travelOpen={travelOpen} updateNotifPrefs={updateNotifPrefs} user={user} />
     </div>
   )
 }
