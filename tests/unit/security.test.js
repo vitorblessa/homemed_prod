@@ -139,6 +139,23 @@ describe('D2 · isolamento entre contas', () => {
     expect((await req('DELETE', '/families/members/ana@example.com', { cookie: beto })).status).toBeGreaterThanOrEqual(400)
   })
 
+  it('o dono de uma família não tira da família quem é de outra família', async () => {
+    const ana = await signup('ana@example.com'); const caio = await signup('caio@example.com')
+    await req('POST', '/families', { body: { name: 'Casa da Ana' }, cookie: ana })
+    await req('POST', '/families', { body: { name: 'Casa do Caio' }, cookie: caio })
+    const r = await req('DELETE', '/families/members/caio@example.com', { cookie: ana })
+    expect(r.status).toBe(404)
+    expect((await req('GET', '/families/me', { cookie: caio })).data.family?.name).toBe('Casa do Caio')
+  })
+
+  it('código de convite tem 10 caracteres sorteados com crypto', async () => {
+    const { randomInviteCode } = await import('@/lib/data/families')
+    const codes = new Set(Array.from({ length: 200 }, () => randomInviteCode()))
+    expect(codes.size).toBe(200)
+    for (const c of codes) expect(c).toMatch(/^[A-HJKMNP-Z2-9]{10}$/)
+    expect(readFileSync(root + 'lib/data/families.js', 'utf8')).not.toMatch(/Math\.random/)
+  })
+
   it('/auth/me e as respostas de login não devolvem hash, token nem campos internos', async () => {
     const r = await req('POST', '/auth/register', { body: { email: 'ana@example.com', password: 'segredo1', name: 'Ana' } })
     const me = await req('GET', '/auth/me', { cookie: r.cookie })
@@ -211,7 +228,7 @@ describe('D4 · sessão', () => {
     expect(setCookie).toMatch(/Max-Age=604800/i)
   })
 
-  it.fails('[ABERTO · exige teste em aparelho] cookie de sessão com SameSite Lax', async () => {
+  it('cookie de sessão com SameSite Lax', async () => {
     const r = await req('POST', '/auth/register', { body: { email: 'ana@example.com', password: 'segredo1', name: 'Ana' } })
     expect(r.headers.get('set-cookie')).toMatch(/SameSite=(Lax|Strict)/i)
   })
@@ -239,11 +256,9 @@ describe('D4 · sessão', () => {
     expect((await req('GET', '/medicines', { cookie: stored })).status).toBe(401)
   })
 
-  it('sessões antigas (guardadas em texto) continuam valendo até expirar', async () => {
+  it('sessões antigas guardadas em texto puro não valem mais', async () => {
     db.rows('users').push({ email: 'velha@example.com', name: 'V' })
     db.rows('sessions').push({ token: 'legado.token', email: 'velha@example.com', name: 'V', expires_at: new Date(Date.now() + 3600e3) })
-    expect((await req('GET', '/auth/me', { cookie: 'legado.token' })).data.user.email).toBe('velha@example.com')
-    await req('POST', '/auth/logout', { cookie: 'legado.token' })
     expect((await req('GET', '/auth/me', { cookie: 'legado.token' })).data.user).toBeNull()
   })
 })
@@ -276,7 +291,31 @@ describe('D5 · abuso e enumeração', () => {
 
   it('cadastro, redefinição e IA têm limite de uso', async () => {
     const src = readFileSync(root + 'lib/api/auth.js', 'utf8') + readFileSync(root + 'lib/api/ai.js', 'utf8')
-    for (const k of ['register:ip', 'forgot:ip', 'forgot:email', 'reset:ip', 'login:ip', 'login:email', 'photo:']) expect(src).toContain(k)
+    for (const k of ['register:ip', 'forgot:ip', 'forgot:email', 'reset:ip', 'login:ip', 'login:email', 'photo:', 'enrich:', 'ask:']) expect(src).toContain(k)
+    expect(readFileSync(root + 'lib/api/families.js', 'utf8')).toContain('join:')
+  })
+
+  it('cadastro não toma conta existente criada com o Google', async () => {
+    db.rows('users').push({ email: 'google@example.com', name: 'G', auth_method: 'google' })
+    const r = await req('POST', '/auth/register', { body: { email: 'google@example.com', password: 'senha-do-atacante', name: 'X' } })
+    expect(r.status).toBe(409)
+    expect(r.cookie).toBeNull()
+    expect(db.rows('users').find(u => u.email === 'google@example.com').password_hash).toBeUndefined()
+    const login = await req('POST', '/auth/login', { body: { email: 'google@example.com', password: 'senha-do-atacante' } })
+    expect(login.status).toBe(401)
+  })
+
+  it('código de convite não pode ser adivinhado por tentativa e erro', async () => {
+    const c = await signup('ana@example.com')
+    let last
+    for (let i = 0; i < 11; i++) last = await req('POST', '/families/join', { body: { invite_code: 'CHUTE' + i }, cookie: c })
+    expect(last.status).toBe(429)
+  })
+
+  it('perguntas e buscas na IA têm limite de tamanho', async () => {
+    const c = await signup('ana@example.com')
+    expect((await req('POST', '/ai/ask', { body: { question: 'x'.repeat(1001) }, cookie: c })).status).toBe(400)
+    expect((await req('POST', '/ai/enrich', { body: { name: 'x'.repeat(201) }, cookie: c })).status).toBe(400)
   })
 })
 
@@ -314,6 +353,25 @@ describe('D6 · entradas hostis', () => {
     }
   })
 
+  it('campos do remédio: só os editáveis, com tipo e tamanho certos', async () => {
+    const c = await signup('ana@example.com')
+    const r = await req('POST', '/medicines', { body: med({ nome_comercial: { $gt: '' }, observacoes: 'x'.repeat(5000), indicacoes: [{ a: 1 }, 'Dor'], quantidade: 'abc', campo_inventado: 'x', bula_resumo: 'falso' }), cookie: c })
+    const row = db.rows('medicines').find(m => m.id === r.data.id)
+    expect(row.nome_comercial).toBe('')
+    expect(row.observacoes).toHaveLength(2000)
+    expect(row.indicacoes).toEqual(['Dor'])
+    expect(row.quantidade).toBe(1)
+    expect(row).not.toHaveProperty('campo_inventado')
+    expect(row).not.toHaveProperty('bula_resumo')
+    await req('PATCH', '/medicines/' + r.data.id, { body: { nome_comercial: ['a'], quantidade: -5, extra: 1, user_email: 'x@y.com' }, cookie: c })
+    const after = db.rows('medicines').find(m => m.id === r.data.id)
+    expect(after.nome_comercial).toBe('')
+    expect(after.quantidade).toBe(0)
+    expect(after).not.toHaveProperty('extra')
+    expect(after.user_email).toBe('ana@example.com')
+    expect((await req('GET', '/medicines?q=dip', { cookie: c })).status).toBe(200)
+  })
+
   it('foto acima de 3,5 MB é recusada antes de chegar à IA', async () => {
     const c = await signup('ana@example.com')
     const r = await req('POST', '/ai/read-box-dates', { body: { image_base64: 'A'.repeat(3_600_000) }, cookie: c })
@@ -323,6 +381,7 @@ describe('D6 · entradas hostis', () => {
   it('erros internos não expõem pilha, caminho de arquivo nem texto do provedor', () => {
     const src = readFileSync(root + 'app/api/[[...path]]/route.js', 'utf8')
     expect(src).not.toMatch(/\.stack/)
+    expect(src).not.toMatch(/error: e\.message \|\|/)
     expect(readFileSync(root + 'lib/ai.js', 'utf8')).toContain('AIUnavailableError')
   })
 })

@@ -69,7 +69,7 @@
         "lodash": "4.18.1",
         "lucide-react": "0.516.0",
         "mongodb": "6.6.0",
-        "next": "15.5.28",
+        "next": "15.5.29",
         "next-themes": "0.4.6",
         "react": "18.3.1",
         "react-day-picker": "9.7.0",
@@ -92,7 +92,7 @@
         "globals": "16.2.0",
         "postcss": "8",
         "tailwindcss": "3.4.19",
-        "vitest": "^4.1.11"
+        "vitest": "^4.1.12"
     },
     "resolutions": {
         "tar": "7.5.22",
@@ -105,7 +105,9 @@
         "**/readdirp/picomatch": "2.3.2",
         "postcss": "8.5.29",
         "yaml": "2.8.3",
-        "lodash": "4.18.1"
+        "lodash": "4.18.1",
+        "glob": "14.0.3",
+        "minimatch": "11.0.4"
     },
     "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

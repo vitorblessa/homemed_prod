@@ -42,6 +42,8 @@ const nextConfig = {
         headers: [
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // Respostas da API têm dados pessoais: nenhum cache (navegador, proxy ou CDN) guarda.
+          { key: 'Cache-Control', value: 'no-store' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           ...(corsOrigin ? [
             { key: 'Access-Control-Allow-Origin', value: corsOrigin },
@@ -60,7 +62,9 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=()' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
-          { key: 'Content-Security-Policy', value: `frame-ancestors ${frameAncestors};` },
+          // Sem default-src/script-src por enquanto (o Next usa scripts inline);
+          // estas diretivas fecham plugins, <base> forjado e envio de formulários a outros sites.
+          { key: 'Content-Security-Policy', value: `frame-ancestors ${frameAncestors}; object-src 'none'; base-uri 'self'; form-action 'self';` },
         ],
       },
     ];

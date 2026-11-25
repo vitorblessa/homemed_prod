@@ -73,7 +73,8 @@ async function handle(request, ctx) {
     }
     console.error('API error', e);
     await reportError(e, { route: path, method });
-    return json({ error: e.message || 'erro interno' }, 500);
+    // Detalhes ficam no log e no Sentry; o app recebe só uma mensagem genérica.
+    return json({ error: 'Erro interno. Tente novamente em instantes.' }, 500);
   }
 }
 

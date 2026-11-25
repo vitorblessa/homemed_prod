@@ -42,7 +42,7 @@ def setup_fake_sessions():
     # Create session for vitor
     db.sessions.insert_one({
         'token': 'fam_test_1',
-        'email': 'vitor.blessa@gmail.com',
+        'email': 'usuario.teste@example.com',
         'name': 'Vitor',
         'picture': '',
         'expires_at': datetime.now() + timedelta(hours=2),
@@ -68,18 +68,18 @@ def setup_fake_sessions():
     
     # Make sure vitor is NOT in a family initially
     db.users.update_one(
-        {'email': 'vitor.blessa@gmail.com'},
+        {'email': 'usuario.teste@example.com'},
         {'$unset': {'family_id': ''}}
     )
     
     # Remove family_id from vitor's medicines (reset to personal medicines)
     db.medicines.update_many(
-        {'user_email': 'vitor.blessa@gmail.com'},
+        {'user_email': 'usuario.teste@example.com'},
         {'$unset': {'family_id': ''}}
     )
     
     client.close()
-    print("✅ Fake sessions created for vitor.blessa@gmail.com and family_member@test.com")
+    print("✅ Fake sessions created for usuario.teste@example.com and family_member@test.com")
 
 def cleanup_test_data():
     """Clean up all test data"""
@@ -94,7 +94,7 @@ def cleanup_test_data():
     
     # Remove vitor's family_id
     db.users.update_one(
-        {'email': 'vitor.blessa@gmail.com'},
+        {'email': 'usuario.teste@example.com'},
         {'$unset': {'family_id': ''}}
     )
     
@@ -145,9 +145,9 @@ def run_tests():
         passed = (resp.status_code == 200 and 
                  family.get('id') is not None and
                  len(family.get('invite_code', '')) == 10 and
-                 family.get('owner_email') == 'vitor.blessa@gmail.com' and
+                 family.get('owner_email') == 'usuario.teste@example.com' and
                  len(family.get('members', [])) == 1 and
-                 family['members'][0]['email'] == 'vitor.blessa@gmail.com')
+                 family['members'][0]['email'] == 'usuario.teste@example.com')
         
         log_test(2, "POST /families (create family)", passed, 
                 f"Status: {resp.status_code}, Family ID: {family.get('id')}, Invite: {family.get('invite_code')}, Owner: {family.get('owner_email')}, Members: {len(family.get('members', []))}")
@@ -176,7 +176,7 @@ def run_tests():
         # Check if medicines have family_id set
         client = MongoClient(MONGO_URL)
         db = client[DB_NAME]
-        sample_med = db.medicines.find_one({'user_email': 'vitor.blessa@gmail.com'})
+        sample_med = db.medicines.find_one({'user_email': 'usuario.teste@example.com'})
         client.close()
         
         has_family_id = sample_med and sample_med.get('family_id') == test_data.get('family_id')
@@ -371,7 +371,7 @@ def run_tests():
         fam = db.families.find_one({'id': test_data.get('family_id')})
         
         # Check vitor's medicines still exist
-        vitor_meds = db.medicines.count_documents({'user_email': 'vitor.blessa@gmail.com'})
+        vitor_meds = db.medicines.count_documents({'user_email': 'usuario.teste@example.com'})
         
         client.close()
         
